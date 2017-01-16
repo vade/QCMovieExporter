@@ -8,7 +8,14 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="Document">
             <connections>
+                <outlet property="codecMenu" destination="YB6-NZ-nqG" id="nHb-MS-I4j"/>
+                <outlet property="codecOptionsButton" destination="tRi-NG-Nx5" id="BNr-n8-b6O"/>
+                <outlet property="destinationButton" destination="iEL-a9-NIl" id="07Y-wp-Qei"/>
+                <outlet property="destinationLabel" destination="bC7-5B-ixo" id="azd-QB-ubx"/>
+                <outlet property="frameRateMenu" destination="sp6-5C-Zdh" id="w0B-eh-ulJ"/>
+                <outlet property="renderButton" destination="2hC-np-fu0" id="5u4-8g-WXh"/>
                 <outlet property="renderProgress" destination="yFo-Dt-dCP" id="hng-3t-OPk"/>
+                <outlet property="resolutionMenu" destination="peK-MJ-rVq" id="TIb-ql-PuF"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
             </connections>
         </customObject>

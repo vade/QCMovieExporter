@@ -16,12 +16,10 @@
 
 @interface Document ()
 {
-    
     // Multisampled FBO
     GLuint msaaFBO;
     GLuint msaaFBODepthAttachment;
     GLuint msaaFBOColorAttachment;
-    
     
     // Blit target from MSAA
     GLuint fbo;
@@ -44,7 +42,14 @@
 @property (readwrite, strong) AVAssetWriterInputPixelBufferAdaptor* assetWriterPixelBufferAdaptor;
 
 // Interface
+@property (readwrite, strong) IBOutlet NSButton* renderButton;
+@property (readwrite, strong) IBOutlet NSButton* destinationButton;
+@property (readwrite, strong) IBOutlet NSTextField* destinationLabel;
 @property (readwrite, strong) IBOutlet NSProgressIndicator* renderProgress;
+@property (readwrite, strong) IBOutlet NSPopUpButton* frameRateMenu;
+@property (readwrite, strong) IBOutlet NSPopUpButton* resolutionMenu;
+@property (readwrite, strong) IBOutlet NSPopUpButton* codecMenu;
+@property (readwrite, strong) IBOutlet NSButton* codecOptionsButton;
 
 
 @end
@@ -124,6 +129,18 @@
     return self;
 }
 
+- (void)windowControllerDidLoadNib:(NSWindowController *)windowController;
+{
+    // disable certain UI items until choices have been made
+    self.destinationButton.enabled = YES;
+    
+    self.renderButton.enabled = NO;
+    self.codecMenu.enabled = NO;
+    self.resolutionMenu.enabled = NO;
+    self.frameRateMenu.enabled = NO;
+    self.codecOptionsButton.enabled = NO;
+}
+
 - (IBAction) chooseRenderDestination:(id)sender
 {
     NSSavePanel* savePanel = [NSSavePanel savePanel];
@@ -172,17 +189,25 @@
                 [self.assetWriter addInput:self.assetWriterVideoInput];
             }
             
-            [self.assetWriter startWriting];
-            [self.assetWriter startSessionAtSourceTime:kCMTimeZero];
+            self.renderButton.enabled = YES;
+            self.destinationLabel.stringValue = savePanel.URL.path;
         }
     }];
 }
 
 - (IBAction) render:(id)sender
 {
-    
+    // Disable changing options once we render - makes no sense
+    self.destinationButton.enabled = NO;
+
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        [self renderAndWrite];
+
+        // Syncronous activity - effectively disables AppNap / re-enables AppNap on completion
+        [NSProcessInfo.processInfo performActivityWithOptions:NSActivityUserInitiated reason:@"Render" usingBlock:^{
+            [self.assetWriter startWriting];
+            [self.assetWriter startSessionAtSourceTime:kCMTimeZero];
+            [self renderAndWrite];
+        }];
     });
 }
 
@@ -248,7 +273,7 @@
             // TODO: flipping projection matrix fucks up depth buffer
             // flip if we need to
 //            if(CVImageBufferIsFlipped(ioSurfaceBackedPixelBuffer))
-//                glScaled(1, -1, 1);
+//                glScaled(1, -1, 1);            
             
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
