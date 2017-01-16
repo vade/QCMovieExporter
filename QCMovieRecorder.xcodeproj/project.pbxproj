@@ -16,6 +16,7 @@
 		1BB8BD211E2C79D70021C1B4 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BB8BD201E2C79D70021C1B4 /* AVFoundation.framework */; };
 		1BB8BD231E2C79DB0021C1B4 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BB8BD221E2C79DB0021C1B4 /* CoreMedia.framework */; };
 		1BB8BD251E2C79E20021C1B4 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BB8BD241E2C79E20021C1B4 /* OpenGL.framework */; };
+		1BB8BD291E2D6A5D0021C1B4 /* SampleLayerView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BB8BD281E2D6A5D0021C1B4 /* SampleLayerView.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,8 @@
 		1BB8BD201E2C79D70021C1B4 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		1BB8BD221E2C79DB0021C1B4 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		1BB8BD241E2C79E20021C1B4 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		1BB8BD271E2D6A5D0021C1B4 /* SampleLayerView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SampleLayerView.h; sourceTree = "<group>"; };
+		1BB8BD281E2D6A5D0021C1B4 /* SampleLayerView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SampleLayerView.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +75,8 @@
 				1BB8BD091E2C797C0021C1B4 /* AppDelegate.m */,
 				1BB8BD0E1E2C797C0021C1B4 /* Document.h */,
 				1BB8BD0F1E2C797C0021C1B4 /* Document.m */,
+				1BB8BD271E2D6A5D0021C1B4 /* SampleLayerView.h */,
+				1BB8BD281E2D6A5D0021C1B4 /* SampleLayerView.m */,
 				1BB8BD111E2C797C0021C1B4 /* Document.xib */,
 				1BB8BD141E2C797C0021C1B4 /* Assets.xcassets */,
 				1BB8BD161E2C797C0021C1B4 /* MainMenu.xib */,
@@ -172,6 +177,7 @@
 			files = (
 				1BB8BD101E2C797C0021C1B4 /* Document.m in Sources */,
 				1BB8BD0D1E2C797C0021C1B4 /* main.m in Sources */,
+				1BB8BD291E2D6A5D0021C1B4 /* SampleLayerView.m in Sources */,
 				1BB8BD0A1E2C797C0021C1B4 /* AppDelegate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -13,6 +13,7 @@
 #import <CoreMedia/CoreMedia.h>
 #import <Quartz/Quartz.h>
 #import <VideoToolbox/VideoToolbox.h>
+#import "SampleLayerView.h"
 
 @interface Document ()
 {
@@ -50,6 +51,8 @@
 @property (readwrite, strong) IBOutlet NSPopUpButton* resolutionMenu;
 @property (readwrite, strong) IBOutlet NSPopUpButton* codecMenu;
 @property (readwrite, strong) IBOutlet NSButton* codecOptionsButton;
+
+@property (readwrite, strong) IBOutlet SampleLayerView* preview;
 
 
 @end
@@ -305,14 +308,21 @@
             if(![self.assetWriterPixelBufferAdaptor appendPixelBuffer:ioSurfaceBackedPixelBuffer withPresentationTime:currentTime])
                 NSLog(@"Unable to write frame at time: %@", CMTimeCopyDescription(kCFAllocatorDefault, currentTime));
             
+            
+            // Update UI on main queue
+            CVPixelBufferRetain(ioSurfaceBackedPixelBuffer);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                
+                [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBuffer];
+                CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
+                
+                self.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
+            });
+            
             // increment time
             currentTime = CMTimeAdd(currentTime, frameInterval);
             frameNumber++;
-            
-            // Update Progress
-            dispatch_async(dispatch_get_main_queue(), ^{
-                self.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
-            });
+
             
             // Cleanup
             CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
