@@ -10,11 +10,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506293772.129637"
+            timestampString = "506294881.945251"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "240"
-            endingLineNumber = "240"
+            startingLineNumber = "249"
+            endingLineNumber = "249"
             landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>
@@ -26,11 +26,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506293772.129637"
+            timestampString = "506294881.945251"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "235"
-            endingLineNumber = "235"
+            startingLineNumber = "244"
+            endingLineNumber = "244"
             landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>
@@ -42,11 +42,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506293772.129637"
+            timestampString = "506294881.945251"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "247"
-            endingLineNumber = "247"
+            startingLineNumber = "256"
+            endingLineNumber = "256"
             landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>
@@ -58,11 +58,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506293772.129637"
+            timestampString = "506294881.945251"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "291"
-            endingLineNumber = "291"
+            startingLineNumber = "300"
+            endingLineNumber = "300"
             landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>
@@ -74,11 +74,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506294509.106391"
+            timestampString = "506294881.945251"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "364"
-            endingLineNumber = "364"
+            startingLineNumber = "347"
+            endingLineNumber = "347"
             landmarkName = "-renderAndWrite"
             landmarkType = "7">
             <Locations>
@@ -122,11 +122,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506293772.129637"
+            timestampString = "506294881.945251"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "254"
-            endingLineNumber = "254"
+            startingLineNumber = "263"
+            endingLineNumber = "263"
             landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>
@@ -162,11 +162,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506294509.106391"
+            timestampString = "506294881.945251"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "413"
-            endingLineNumber = "413"
+            startingLineNumber = "396"
+            endingLineNumber = "396"
             landmarkName = "-createFBOWithCVPixelBuffer:"
             landmarkType = "7">
          </BreakpointContent>
@@ -178,11 +178,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506294509.106391"
+            timestampString = "506294881.945251"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "412"
-            endingLineNumber = "412"
+            startingLineNumber = "395"
+            endingLineNumber = "395"
             landmarkName = "-createFBOWithCVPixelBuffer:"
             landmarkType = "7">
          </BreakpointContent>
@@ -194,23 +194,7 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506293772.129637"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "128"
-            endingLineNumber = "128"
-            landmarkName = "-initWithContentsOfURL:ofType:error:"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506293772.129637"
+            timestampString = "506294754.716171"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "129"
@@ -226,11 +210,27 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506293772.129637"
+            timestampString = "506294754.716171"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "152"
-            endingLineNumber = "152"
+            startingLineNumber = "130"
+            endingLineNumber = "130"
+            landmarkName = "-initWithContentsOfURL:ofType:error:"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "QCMovieRecorder/Document.m"
+            timestampString = "506294754.716171"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "153"
+            endingLineNumber = "153"
             landmarkName = "-chooseRenderDestination:"
             landmarkType = "7">
             <Locations>
@@ -274,11 +274,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506293772.129637"
+            timestampString = "506294881.945251"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "308"
-            endingLineNumber = "308"
+            startingLineNumber = "317"
+            endingLineNumber = "317"
             landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>
@@ -290,11 +290,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506293772.129637"
+            timestampString = "506294881.945251"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "261"
-            endingLineNumber = "261"
+            startingLineNumber = "270"
+            endingLineNumber = "270"
             landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>

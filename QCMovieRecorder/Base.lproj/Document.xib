@@ -12,6 +12,7 @@
                 <outlet property="codecOptionsButton" destination="tRi-NG-Nx5" id="BNr-n8-b6O"/>
                 <outlet property="destinationButton" destination="iEL-a9-NIl" id="07Y-wp-Qei"/>
                 <outlet property="destinationLabel" destination="bC7-5B-ixo" id="azd-QB-ubx"/>
+                <outlet property="enablePreviewButton" destination="z9u-oV-NmE" id="j1E-pB-g2A"/>
                 <outlet property="frameRateMenu" destination="sp6-5C-Zdh" id="w0B-eh-ulJ"/>
                 <outlet property="preview" destination="abc-5s-xWA" id="8nT-6M-USe"/>
                 <outlet property="renderButton" destination="2hC-np-fu0" id="5u4-8g-WXh"/>
@@ -164,6 +165,14 @@
                         <rect key="frame" x="20" y="195" width="467" height="239"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     </customView>
+                    <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="z9u-oV-NmE">
+                        <rect key="frame" x="432" y="174" width="57" height="18"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <buttonCell key="cell" type="check" title="Preview" bezelStyle="regularSquare" imagePosition="left" controlSize="mini" state="on" inset="2" id="EQP-ng-04y">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="miniSystem"/>
+                        </buttonCell>
+                    </button>
                 </subviews>
             </view>
             <connections>

@@ -51,6 +51,7 @@
 @property (readwrite, strong) IBOutlet NSPopUpButton* resolutionMenu;
 @property (readwrite, strong) IBOutlet NSPopUpButton* codecMenu;
 @property (readwrite, strong) IBOutlet NSButton* codecOptionsButton;
+@property (readwrite, strong) IBOutlet NSButton* enablePreviewButton;
 
 @property (readwrite, strong) IBOutlet SampleLayerView* preview;
 
@@ -194,6 +195,10 @@
             
             self.renderButton.enabled = YES;
             self.destinationLabel.stringValue = savePanel.URL.path;
+            self.codecMenu.enabled = YES;
+            self.resolutionMenu.enabled = YES;
+            self.frameRateMenu.enabled = YES;
+            self.codecOptionsButton.enabled = NO;
         }
     }];
 }
@@ -202,6 +207,10 @@
 {
     // Disable changing options once we render - makes no sense
     self.destinationButton.enabled = NO;
+    self.codecMenu.enabled = NO;
+    self.resolutionMenu.enabled = NO;
+    self.frameRateMenu.enabled = NO;
+    self.codecOptionsButton.enabled = NO;
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
 
@@ -313,7 +322,9 @@
             CVPixelBufferRetain(ioSurfaceBackedPixelBuffer);
             dispatch_async(dispatch_get_main_queue(), ^{
                 
-                [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBuffer];
+                if(self.enablePreviewButton.state == NSOnState)
+                    [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBuffer];
+                
                 CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
                 
                 self.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
