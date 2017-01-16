@@ -43,6 +43,10 @@
 @property (readwrite, strong) AVAssetWriterInput* assetWriterVideoInput;
 @property (readwrite, strong) AVAssetWriterInputPixelBufferAdaptor* assetWriterPixelBufferAdaptor;
 
+// Interface
+@property (readwrite, strong) IBOutlet NSProgressIndicator* renderProgress;
+
+
 @end
 
 @implementation Document
@@ -115,62 +119,71 @@
         
         self.composition = [QCComposition compositionWithFile:url.path];
         
-        NSSavePanel* savePanel = [NSSavePanel savePanel];
-        
-        savePanel.allowedFileTypes = @[@"mov"];
-        
-        [savePanel beginWithCompletionHandler:^(NSInteger result) {
-            
-            if(result == NSFileHandlingPanelOKButton)
-            {
-                self.assetWriter = [[AVAssetWriter alloc] initWithURL:savePanel.URL fileType:AVFileTypeQuickTimeMovie error:nil];
-                
-                self.videoWidth = 1920;
-                self.videoHeight = 1080;
-//                self.videoWidth = 4096;
-//                self.videoHeight = 2160;
-                
-                NSDictionary* videoOutputSettings = @{ AVVideoCodecKey : AVVideoCodecAppleProRes4444,
-                                                       AVVideoWidthKey : @(self.videoWidth),
-                                                       AVVideoHeightKey : @(self.videoHeight),
-                                                       
-                                                       // HD:
-                                                       AVVideoColorPropertiesKey : @{
-                                                               AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
-                                                               AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
-                                                               AVVideoYCbCrMatrixKey : AVVideoYCbCrMatrix_ITU_R_709_2,
-                                                               },
-                                                       };
-                
-                self.assetWriterVideoInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo
-                                                                            outputSettings:videoOutputSettings];
-                
-                NSDictionary* pixelBufferAttributes = @{ (NSString*) kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
-                                                         (NSString*) kCVPixelBufferWidthKey : @(self.videoWidth),
-                                                         (NSString*) kCVPixelBufferHeightKey : @(self.videoHeight),
-                                                         (NSString*) kCVPixelBufferIOSurfacePropertiesKey : @{ },
-                                                         (NSString*) kCVPixelBufferOpenGLCompatibilityKey : @(YES),
-                                                         (NSString*) kCVPixelBufferIOSurfaceOpenGLTextureCompatibilityKey : @(YES),
-                                                         (NSString*) kCVPixelBufferIOSurfaceOpenGLFBOCompatibilityKey : @(YES),
-                                                         };
-                
-                self.assetWriterPixelBufferAdaptor = [[AVAssetWriterInputPixelBufferAdaptor alloc] initWithAssetWriterInput:self.assetWriterVideoInput sourcePixelBufferAttributes:pixelBufferAttributes];
-                
-                if([self.assetWriter canAddInput:self.assetWriterVideoInput])
-                {
-                    [self.assetWriter addInput:self.assetWriterVideoInput];
-                }
-                
-                [self.assetWriter startWriting];
-                [self.assetWriter startSessionAtSourceTime:kCMTimeZero];
-                
-                [self renderAndWrite];
-            }
-            
-        }];
     }
     
     return self;
+}
+
+- (IBAction) chooseRenderDestination:(id)sender
+{
+    NSSavePanel* savePanel = [NSSavePanel savePanel];
+    
+    savePanel.allowedFileTypes = @[@"mov"];
+    
+    [savePanel beginSheetModalForWindow:self.windowControllers[0].window completionHandler:^(NSInteger result) {
+        
+        if(result == NSFileHandlingPanelOKButton)
+        {
+            self.assetWriter = [[AVAssetWriter alloc] initWithURL:savePanel.URL fileType:AVFileTypeQuickTimeMovie error:nil];
+            
+            self.videoWidth = 1920;
+            self.videoHeight = 1080;
+            //                self.videoWidth = 4096;
+            //                self.videoHeight = 2160;
+            
+            NSDictionary* videoOutputSettings = @{ AVVideoCodecKey : AVVideoCodecAppleProRes4444,
+                                                   AVVideoWidthKey : @(self.videoWidth),
+                                                   AVVideoHeightKey : @(self.videoHeight),
+                                                   
+                                                   // HD:
+                                                   AVVideoColorPropertiesKey : @{
+                                                           AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+                                                           AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
+                                                           AVVideoYCbCrMatrixKey : AVVideoYCbCrMatrix_ITU_R_709_2,
+                                                           },
+                                                   };
+            
+            self.assetWriterVideoInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo
+                                                                        outputSettings:videoOutputSettings];
+            
+            NSDictionary* pixelBufferAttributes = @{ (NSString*) kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
+                                                     (NSString*) kCVPixelBufferWidthKey : @(self.videoWidth),
+                                                     (NSString*) kCVPixelBufferHeightKey : @(self.videoHeight),
+                                                     (NSString*) kCVPixelBufferIOSurfacePropertiesKey : @{ },
+                                                     (NSString*) kCVPixelBufferOpenGLCompatibilityKey : @(YES),
+                                                     (NSString*) kCVPixelBufferIOSurfaceOpenGLTextureCompatibilityKey : @(YES),
+                                                     (NSString*) kCVPixelBufferIOSurfaceOpenGLFBOCompatibilityKey : @(YES),
+                                                     };
+            
+            self.assetWriterPixelBufferAdaptor = [[AVAssetWriterInputPixelBufferAdaptor alloc] initWithAssetWriterInput:self.assetWriterVideoInput sourcePixelBufferAttributes:pixelBufferAttributes];
+            
+            if([self.assetWriter canAddInput:self.assetWriterVideoInput])
+            {
+                [self.assetWriter addInput:self.assetWriterVideoInput];
+            }
+            
+            [self.assetWriter startWriting];
+            [self.assetWriter startSessionAtSourceTime:kCMTimeZero];
+        }
+    }];
+}
+
+- (IBAction) render:(id)sender
+{
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+        [self renderAndWrite];
+    });
 }
 
 
@@ -232,6 +245,7 @@
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();
 
+            // TODO: flipping projection matrix fucks up depth buffer
             // flip if we need to
 //            if(CVImageBufferIsFlipped(ioSurfaceBackedPixelBuffer))
 //                glScaled(1, -1, 1);
@@ -269,6 +283,11 @@
             // increment time
             currentTime = CMTimeAdd(currentTime, frameInterval);
             frameNumber++;
+            
+            // Update Progress
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
+            });
             
             // Cleanup
             CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
