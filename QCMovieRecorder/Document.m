@@ -143,6 +143,77 @@
     self.resolutionMenu.enabled = NO;
     self.frameRateMenu.enabled = NO;
     self.codecOptionsButton.enabled = NO;
+    
+    [self buildMenus];
+}
+
+- (void) buildMenus
+{
+    NSArray* resolutions = @[ [NSValue valueWithSize:NSMakeSize(640, 480)],
+                              [NSValue valueWithSize:NSMakeSize(1280, 720)],
+                              [NSValue valueWithSize:NSMakeSize(1920, 1080)],
+                              [NSValue valueWithSize:NSMakeSize(2048, 1080)],
+                              [NSValue valueWithSize:NSMakeSize(3840, 2160)],
+                              [NSValue valueWithSize:NSMakeSize(4096, 2160)],
+                              [NSValue valueWithSize:NSMakeSize(7680, 4320)],
+                              [NSValue valueWithSize:NSMakeSize(8192, 4320)],
+                              ];
+    
+    NSArray* resolutionNames = @[ @"480P",
+                                  @"720P",
+                                  @"1080P",
+                                  @"2K",
+                                  @"UHD",
+                                  @"4K",
+                                  @"8K UHD",
+                                  @"8K",
+                              ];
+
+    [self makeMenu:self.resolutionMenu representedObjects:resolutions titles:resolutionNames selector:@selector(setResolution:)];
+
+    NSArray* frameRates = @[ [NSValue valueWithCMTime:CMTimeMake(1, 24)],
+                             [NSValue valueWithCMTime:CMTimeMake(1, 25)],
+                             [NSValue valueWithCMTime:CMTimeMake(1, 30)],
+                             [NSValue valueWithCMTime:CMTimeMake(1, 50)],
+                             [NSValue valueWithCMTime:CMTimeMake(1, 60)],
+                             [NSValue valueWithCMTime:CMTimeMake(1, 120)],
+                              ];
+    
+    NSArray* frameRateNames = @[ @"24",
+                                  @"25",
+                                  @"30",
+                                  @"50",
+                                  @"60",
+                                  @"120",
+                                  ];
+    
+    [self makeMenu:self.frameRateMenu representedObjects:frameRates titles:frameRateNames selector:@selector(setFrameRate:)];
+
+    NSArray* codecs = @[AVVideoCodecAppleProRes4444,
+                        AVVideoCodecAppleProRes422,
+                        AVVideoCodecJPEG,
+                        AVVideoCodecH264,
+                        ];
+    
+    NSArray* codecNames = @[ @"ProRes 4444",
+                             @"ProRes 422",
+                             @"Motion Jpeg",
+                             @"H.264"
+                                 ];
+    
+    [self makeMenu:self.codecMenu representedObjects:codecs titles:codecNames selector:@selector(setCodec:)];
+}
+
+- (void) makeMenu:(NSPopUpButton*)popUp representedObjects:(NSArray*)objects titles:(NSArray*)titles selector:(SEL)selector
+{
+    [popUp removeAllItems];
+
+    for(int i = 0; i < objects.count; i++)
+    {
+        NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:titles[i] action:selector keyEquivalent:@""];
+        [item setRepresentedObject:objects[i]];
+        [popUp.menu addItem:item];
+    }
 }
 
 - (IBAction) chooseRenderDestination:(id)sender
@@ -201,6 +272,23 @@
             self.codecOptionsButton.enabled = NO;
         }
     }];
+}
+
+- (IBAction) setResolution:(NSMenuItem*)sender
+{
+    NSLog(@"%@", sender.representedObject);
+}
+
+- (IBAction) setCodec:(NSMenuItem*)sender
+{
+    NSLog(@"%@", sender.representedObject);
+    
+}
+
+- (IBAction) setFrameRate:(NSMenuItem*)sender
+{
+    NSLog(@"%@", sender.representedObject);
+    
 }
 
 - (IBAction) render:(id)sender
