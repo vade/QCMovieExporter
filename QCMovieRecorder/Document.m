@@ -37,11 +37,13 @@
 
 // Movie Writing
 @property (readwrite, assign) NSInteger durationH, durationM, durationS, duration;
-@property (readwrite, assign) NSUInteger videoWidth;
-@property (readwrite, assign) NSUInteger videoHeight;
 @property (readwrite, strong) AVAssetWriter* assetWriter;
 @property (readwrite, strong) AVAssetWriterInput* assetWriterVideoInput;
 @property (readwrite, strong) AVAssetWriterInputPixelBufferAdaptor* assetWriterPixelBufferAdaptor;
+
+@property (readwrite, assign) CMTime frameInterval;
+@property (readwrite, assign) NSSize videoResolution;
+@property (readwrite, strong) NSString* codecString;
 
 // Interface
 @property (readwrite, strong) IBOutlet NSButton* renderButton;
@@ -232,43 +234,7 @@
         if(result == NSFileHandlingPanelOKButton)
         {
             self.assetWriter = [[AVAssetWriter alloc] initWithURL:savePanel.URL fileType:AVFileTypeQuickTimeMovie error:nil];
-            
-            self.videoWidth = 1920;
-            self.videoHeight = 1080;
-            //                self.videoWidth = 4096;
-            //                self.videoHeight = 2160;
-            
-            NSDictionary* videoOutputSettings = @{ AVVideoCodecKey : AVVideoCodecAppleProRes4444,
-                                                   AVVideoWidthKey : @(self.videoWidth),
-                                                   AVVideoHeightKey : @(self.videoHeight),
-                                                   
-                                                   // HD:
-                                                   AVVideoColorPropertiesKey : @{
-                                                           AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
-                                                           AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
-                                                           AVVideoYCbCrMatrixKey : AVVideoYCbCrMatrix_ITU_R_709_2,
-                                                           },
-                                                   };
-            
-            self.assetWriterVideoInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo
-                                                                        outputSettings:videoOutputSettings];
-            
-            NSDictionary* pixelBufferAttributes = @{ (NSString*) kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
-                                                     (NSString*) kCVPixelBufferWidthKey : @(self.videoWidth),
-                                                     (NSString*) kCVPixelBufferHeightKey : @(self.videoHeight),
-                                                     (NSString*) kCVPixelBufferIOSurfacePropertiesKey : @{ },
-                                                     (NSString*) kCVPixelBufferOpenGLCompatibilityKey : @(YES),
-                                                     (NSString*) kCVPixelBufferIOSurfaceOpenGLTextureCompatibilityKey : @(YES),
-                                                     (NSString*) kCVPixelBufferIOSurfaceOpenGLFBOCompatibilityKey : @(YES),
-                                                     };
-            
-            self.assetWriterPixelBufferAdaptor = [[AVAssetWriterInputPixelBufferAdaptor alloc] initWithAssetWriterInput:self.assetWriterVideoInput sourcePixelBufferAttributes:pixelBufferAttributes];
-            
-            if([self.assetWriter canAddInput:self.assetWriterVideoInput])
-            {
-                [self.assetWriter addInput:self.assetWriterVideoInput];
-            }
-            
+        
             self.renderButton.enabled = YES;
             self.destinationLabel.stringValue = savePanel.URL.path;
             self.codecMenu.enabled = YES;
@@ -282,16 +248,20 @@
 - (IBAction) setResolution:(NSMenuItem*)sender
 {
     NSLog(@"%@", sender.representedObject);
+    self.videoResolution = [sender.representedObject sizeValue];
 }
 
 - (IBAction) setCodec:(NSMenuItem*)sender
 {
     NSLog(@"%@", sender.representedObject);
+    self.codecString = sender.representedObject;
 }
 
 - (IBAction) setFrameRate:(NSMenuItem*)sender
 {
     NSLog(@"%@", sender.representedObject);
+    
+    self.frameInterval = [sender.representedObject CMTimeValue];
 }
 
 - (IBAction)updateH:(NSTextField *)sender
@@ -330,6 +300,40 @@
 		self.codecOptionsButton.enabled = NO;
 		self.renderButton.title = @"Cancel";
 		
+        // Setup outputs absed on chosen framerate, resolution, codec
+        
+        NSDictionary* videoOutputSettings = @{ AVVideoCodecKey : self.codecString,
+                                               AVVideoWidthKey : @(self.videoResolution.width),
+                                               AVVideoHeightKey : @(self.videoResolution.height),
+                                               
+                                               // HD:
+                                               AVVideoColorPropertiesKey : @{
+                                                       AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+                                                       AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
+                                                       AVVideoYCbCrMatrixKey : AVVideoYCbCrMatrix_ITU_R_709_2,
+                                                       },
+                                               };
+        
+        self.assetWriterVideoInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo
+                                                                    outputSettings:videoOutputSettings];
+        
+        NSDictionary* pixelBufferAttributes = @{ (NSString*) kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
+                                                 (NSString*) kCVPixelBufferWidthKey : @(self.videoResolution.width),
+                                                 (NSString*) kCVPixelBufferHeightKey : @(self.videoResolution.height),
+                                                 (NSString*) kCVPixelBufferIOSurfacePropertiesKey : @{ },
+                                                 (NSString*) kCVPixelBufferOpenGLCompatibilityKey : @(YES),
+                                                 (NSString*) kCVPixelBufferIOSurfaceOpenGLTextureCompatibilityKey : @(YES),
+                                                 (NSString*) kCVPixelBufferIOSurfaceOpenGLFBOCompatibilityKey : @(YES),
+                                                 };
+        
+        self.assetWriterPixelBufferAdaptor = [[AVAssetWriterInputPixelBufferAdaptor alloc] initWithAssetWriterInput:self.assetWriterVideoInput sourcePixelBufferAttributes:pixelBufferAttributes];
+        
+        if([self.assetWriter canAddInput:self.assetWriterVideoInput])
+        {
+            [self.assetWriter addInput:self.assetWriterVideoInput];
+        }
+
+        
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
 			
 				// Syncronous activity - effectively disables AppNap / re-enables AppNap on completion
@@ -352,7 +356,6 @@
 
 - (void) renderAndWrite
 {
-    CMTime frameInterval = CMTimeMake(1, 60);
     CMTime duration = CMTimeMakeWithSeconds(self.duration, 600);
     __block CMTime currentTime = kCMTimeZero;
     __block NSUInteger frameNumber = 0;
@@ -457,7 +460,7 @@
             });
             
             // increment time
-            currentTime = CMTimeAdd(currentTime, frameInterval);
+            currentTime = CMTimeAdd(currentTime, self.frameInterval);
             frameNumber++;
 
             
