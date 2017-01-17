@@ -342,7 +342,6 @@
 		self.renderButton.title = @"Cancel";
 		
         // Setup outputs absed on chosen framerate, resolution, codec
-        
         NSDictionary* videoOutputSettings = @{ AVVideoCodecKey : self.codecString,
                                                AVVideoWidthKey : @(self.videoResolution.width),
                                                AVVideoHeightKey : @(self.videoResolution.height),
@@ -492,17 +491,14 @@
             if(CVImageBufferIsFlipped(ioSurfaceBackedPixelBuffer))
             {
                 // Create a new destination pixel buffer from our pool,
-                
                 CVPixelBufferRef flippedIoSurfaceBackedPixelBuffer;
                 CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, self.assetWriterPixelBufferAdaptor.pixelBufferPool, &flippedIoSurfaceBackedPixelBuffer);
-
                 
                 // Lock base addresses for reading / writing
                 CVPixelBufferLockBaseAddress(ioSurfaceBackedPixelBuffer, kCVPixelBufferLock_ReadOnly);
                 CVPixelBufferLockBaseAddress(flippedIoSurfaceBackedPixelBuffer, 0);
                 
                 // make vImage buffers
-                
                 vImage_Buffer source;
                 source.data = CVPixelBufferGetBaseAddress(ioSurfaceBackedPixelBuffer);
                 source.rowBytes = CVPixelBufferGetBytesPerRow(ioSurfaceBackedPixelBuffer);
@@ -517,10 +513,9 @@
                 
                 vImageVerticalReflect_ARGB8888(&source, &dest, kvImageNoFlags);
                 
+                // Clean Up
                 CVPixelBufferUnlockBaseAddress(ioSurfaceBackedPixelBuffer, kCVPixelBufferLock_ReadOnly);
                 CVPixelBufferUnlockBaseAddress(flippedIoSurfaceBackedPixelBuffer, 0);
-                
-                // Clean Up
                 CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
 
                 // Write pixel buffer to movie
