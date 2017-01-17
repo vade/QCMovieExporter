@@ -61,8 +61,15 @@
 @property (readwrite, strong) IBOutlet NSButton* enablePreviewButton;
 @property (readwrite, strong) IBOutlet NSWindow* codecOptionsWindow;
 
-@property (readwrite, strong) IBOutlet SampleLayerView* preview;
+// Codec Options interface
+@property (readwrite, strong) IBOutlet NSSlider* jpegQualitySlider;
+@property (readwrite, strong) NSNumber* jpegQuality;
 
+@property (readwrite, strong) IBOutlet NSSlider* h264QualitySlider;
+@property (readwrite, strong) IBOutlet NSTextField* h264Bitrate;
+
+
+@property (readwrite, strong) IBOutlet SampleLayerView* preview;
 
 @end
 
@@ -78,9 +85,10 @@
         self.renderer = nil;
         
         self.shouldCanel = NO;
-        self.frameInterval = CMTimeMake(1, 24);
-        self.videoResolution = NSMakeSize(640, 480);
+        self.frameInterval = CMTimeMake(1, 60);
+        self.videoResolution = NSMakeSize(1920, 1080);
         self.codecString = AVVideoCodecAppleProRes4444;
+        self.antialiasFactor = 8;
         
         NSOpenGLPixelFormatAttribute attributes[] = {
             NSOpenGLPFAAllowOfflineRenderers,
@@ -100,12 +108,13 @@
             {
                 NSLog(@"loaded context");
             }
-            
         }
 		
-			// Default duration (30 seconds)
-		_durationH = 0; _durationM = 0; _durationS = 30;
-		[self updateDuration];
+        // Default duration (30 seconds)
+        self.durationH = 0;
+        self.durationM = 0;
+        self.durationS = 30;
+        [self updateDuration];
     }
     
     return self;
@@ -182,9 +191,7 @@
     
     [self.resolutionMenu removeAllItems];
     [self makeMenu:self.resolutionMenu representedObjects:resolutions titles:resolutionNames selector:@selector(setResolution:)];
-    
-    
-    
+
     NSArray* tripleHeadResolutions = @[ [NSValue valueWithSize:NSMakeSize(640 * 3, 480)],
                                         [NSValue valueWithSize:NSMakeSize(1280 * 3, 720)],
                                         [NSValue valueWithSize:NSMakeSize(1920 * 3, 1080)],
@@ -193,18 +200,20 @@
                                         [NSValue valueWithSize:NSMakeSize(4096 * 3, 2160)],
                                         ];
     
-    NSArray* tripleHeadResolutionNames = @[ @"480P TripleHead",
-                                  @"720P TripleHead",
-                                  @"1080P TripleHead",
-                                  @"2K TripleHead",
-                                  @"UHD TripleHead",
-                                  @"4K TripleHead",
+    NSArray* tripleHeadResolutionNames = @[ @"TripleHead 480P",
+                                  @"TripleHead 720P",
+                                  @"TripleHead 1080P",
+                                  @"TripleHead 2K",
+                                  @"TripleHead UHD",
+                                  @"TripleHead 4K",
                                   ];
     
     [self.resolutionMenu.menu addItem:[NSMenuItem separatorItem]];
 
     [self makeMenu:self.resolutionMenu representedObjects:tripleHeadResolutions titles:tripleHeadResolutionNames selector:@selector(setResolution:)];
 
+    // select defaults
+    [self.resolutionMenu selectItem:self.resolutionMenu.menu.itemArray[2]];
     
     NSArray* frameRates = @[ [NSValue valueWithCMTime:CMTimeMake(1, 24)],
                              [NSValue valueWithCMTime:CMTimeMake(1, 25)],
@@ -225,6 +234,9 @@
     [self.frameRateMenu removeAllItems];
     [self makeMenu:self.frameRateMenu representedObjects:frameRates titles:frameRateNames selector:@selector(setFrameRate:)];
     
+    // select defaults
+    [self.frameRateMenu selectItem:self.frameRateMenu.menu.itemArray[4]];
+
     NSArray* codecs = @[AVVideoCodecAppleProRes4444,
                         AVVideoCodecAppleProRes422,
                         AVVideoCodecJPEG,
@@ -240,18 +252,24 @@
     [self.codecMenu removeAllItems];
     [self makeMenu:self.codecMenu representedObjects:codecs titles:codecNames selector:@selector(setCodec:)];
 
+    // select defaults
+    [self.codecMenu selectItem:self.codecMenu.menu.itemArray[0]];
     
     NSArray* aaName = @[@"None",
                         @"4x",
                         @"8x",
                         ];
     
-    NSArray* aaAmount = @[ @(1),
-                            @(4),
-                            @(8),
-                             ];
+    NSArray* aaAmount = @[@(1),
+                          @(4),
+                          @(8),
+                          ];
     
+    [self.antialiasMenu removeAllItems];
     [self makeMenu:self.antialiasMenu representedObjects:aaAmount titles:aaName selector:@selector(setAntialiasAmount:)];
+    
+    // select defaults
+    [self.antialiasMenu selectItem:self.antialiasMenu.menu.itemArray[2]];
 }
 
 - (void) makeMenu:(NSPopUpButton*)popUp representedObjects:(NSArray*)objects titles:(NSArray*)titles selector:(SEL)selector
@@ -378,6 +396,20 @@
                                                        },
                                                };
         
+        if([self.codecString isEqualToString:AVVideoCodecJPEG])
+        {
+            videoOutputSettings = [videoOutputSettings mutableCopy];
+            NSDictionary* jpegSettings = @{AVVideoQualityKey : self.jpegQuality};
+            [(NSMutableDictionary*)videoOutputSettings addEntriesFromDictionary:@{AVVideoCompressionPropertiesKey : jpegSettings}];
+        }
+
+        if([self.codecString isEqualToString:AVVideoCodecH264])
+        {
+            videoOutputSettings = [videoOutputSettings mutableCopy];
+            NSDictionary* h264Settings =  @{AVVideoAverageBitRateKey : self.h264Bitrate};
+            [(NSMutableDictionary*)videoOutputSettings addEntriesFromDictionary:@{AVVideoCompressionPropertiesKey : h264Settings}];
+        }
+
         self.assetWriterVideoInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo
                                                                     outputSettings:videoOutputSettings];
         

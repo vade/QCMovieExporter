@@ -16,6 +16,7 @@
                 <outlet property="destinationLabel" destination="bC7-5B-ixo" id="azd-QB-ubx"/>
                 <outlet property="enablePreviewButton" destination="z9u-oV-NmE" id="j1E-pB-g2A"/>
                 <outlet property="frameRateMenu" destination="sp6-5C-Zdh" id="w0B-eh-ulJ"/>
+                <outlet property="jpegQualitySlider" destination="hjw-zH-Dd8" id="cYW-VV-Rkb"/>
                 <outlet property="preview" destination="abc-5s-xWA" id="8nT-6M-USe"/>
                 <outlet property="renderButton" destination="2hC-np-fu0" id="5u4-8g-WXh"/>
                 <outlet property="renderProgress" destination="yFo-Dt-dCP" id="hng-3t-OPk"/>
@@ -331,14 +332,17 @@
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <tabViewItems>
                             <tabViewItem label="Motion JPEG" identifier="1" id="e76-Ks-tRL">
-                                <view key="view" id="hd1-aN-8ab">
+                                <view key="view" ambiguous="YES" id="hd1-aN-8ab">
                                     <rect key="frame" x="10" y="25" width="434" height="194"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <slider verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hjw-zH-Dd8">
-                                            <rect key="frame" x="17" y="144" width="349" height="15"/>
+                                            <rect key="frame" x="17" y="144" width="349" height="18"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                            <sliderCell key="cell" controlSize="small" state="on" alignment="left" maxValue="1" doubleValue="0.80000000000000004" tickMarkPosition="above" sliderType="linear" id="8wE-GS-bE4"/>
+                                            <sliderCell key="cell" controlSize="small" continuous="YES" state="on" alignment="left" maxValue="1" doubleValue="0.80000000000000004" tickMarkPosition="below" numberOfTickMarks="11" allowsTickMarkValuesOnly="YES" sliderType="linear" id="8wE-GS-bE4"/>
+                                            <connections>
+                                                <binding destination="-2" name="value" keyPath="self.jpegQuality" id="fkx-MX-U3b"/>
+                                            </connections>
                                         </slider>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" allowsCharacterPickerTouchBarItem="NO" translatesAutoresizingMaskIntoConstraints="NO" id="OUW-2b-TNN">
                                             <rect key="frame" x="15" y="174" width="83" height="14"/>
@@ -353,16 +357,24 @@
                                             <rect key="frame" x="380" y="144" width="39" height="14"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Num" id="qlD-47-Ztp">
+                                                <numberFormatter key="formatter" formatterBehavior="default10_4" numberStyle="percent" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" id="ZmN-Jv-skt">
+                                                    <integer key="multiplier" value="100"/>
+                                                    <real key="minimum" value="0.0"/>
+                                                    <real key="maximum" value="100"/>
+                                                </numberFormatter>
                                                 <font key="font" metaFont="smallSystem"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
+                                            <connections>
+                                                <binding destination="-2" name="value" keyPath="self.jpegQuality" id="NTf-vA-uDh"/>
+                                            </connections>
                                         </textField>
                                     </subviews>
                                 </view>
                             </tabViewItem>
                             <tabViewItem label="H.264" identifier="2" id="as3-pX-3F2">
-                                <view key="view" ambiguous="YES" id="uMY-45-HK2">
+                                <view key="view" id="uMY-45-HK2">
                                     <rect key="frame" x="10" y="25" width="434" height="194"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
