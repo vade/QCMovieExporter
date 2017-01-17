@@ -10,12 +10,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506358107.224098"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "334"
-            endingLineNumber = "334"
-            landmarkName = "-revealCodecOptions:"
+            startingLineNumber = "338"
+            endingLineNumber = "338"
+            landmarkName = "-render:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -26,12 +26,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506358107.224098"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "329"
-            endingLineNumber = "329"
-            landmarkName = "-revealCodecOptions:"
+            startingLineNumber = "333"
+            endingLineNumber = "333"
+            landmarkName = "-render:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -42,12 +42,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506358107.224098"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "375"
-            endingLineNumber = "375"
-            landmarkName = "-revealCodecOptions:"
+            startingLineNumber = "379"
+            endingLineNumber = "379"
+            landmarkName = "-render:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -58,12 +58,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506358107.224098"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "428"
-            endingLineNumber = "428"
-            landmarkName = "-revealCodecOptions:"
+            startingLineNumber = "432"
+            endingLineNumber = "432"
+            landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -74,12 +74,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506358107.224098"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "475"
-            endingLineNumber = "475"
-            landmarkName = "-revealCodecOptions:"
+            startingLineNumber = "479"
+            endingLineNumber = "479"
+            landmarkName = "-renderAndWrite"
             landmarkType = "7">
             <Locations>
                <Location
@@ -146,12 +146,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506358107.224098"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "523"
-            endingLineNumber = "523"
-            landmarkName = "-revealCodecOptions:"
+            startingLineNumber = "527"
+            endingLineNumber = "527"
+            landmarkName = "-createFBOWithCVPixelBuffer:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -162,12 +162,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506358107.224098"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "522"
-            endingLineNumber = "522"
-            landmarkName = "-revealCodecOptions:"
+            startingLineNumber = "526"
+            endingLineNumber = "526"
+            landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -178,11 +178,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506320566.008467"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "135"
-            endingLineNumber = "135"
+            startingLineNumber = "136"
+            endingLineNumber = "136"
             landmarkName = "-initWithContentsOfURL:ofType:error:"
             landmarkType = "7">
          </BreakpointContent>
@@ -194,11 +194,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506320566.008467"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "241"
-            endingLineNumber = "241"
+            startingLineNumber = "242"
+            endingLineNumber = "242"
             landmarkName = "-chooseRenderDestination:"
             landmarkType = "7">
             <Locations>
@@ -242,12 +242,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506358107.224098"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "445"
-            endingLineNumber = "445"
-            landmarkName = "-revealCodecOptions:"
+            startingLineNumber = "449"
+            endingLineNumber = "449"
+            landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -258,12 +258,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506358107.224098"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "392"
-            endingLineNumber = "392"
-            landmarkName = "-revealCodecOptions:"
+            startingLineNumber = "396"
+            endingLineNumber = "396"
+            landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -274,12 +274,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QCMovieRecorder/Document.m"
-            timestampString = "506358107.224098"
+            timestampString = "506360342.583036"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "415"
-            endingLineNumber = "415"
-            landmarkName = "-revealCodecOptions:"
+            startingLineNumber = "419"
+            endingLineNumber = "419"
+            landmarkName = "-renderAndWrite"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

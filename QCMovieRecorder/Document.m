@@ -58,6 +58,7 @@
 @property (readwrite, strong) IBOutlet NSPopUpButton* antialiasMenu;
 @property (readwrite, strong) IBOutlet NSButton* codecOptionsButton;
 @property (readwrite, strong) IBOutlet NSButton* enablePreviewButton;
+@property (readwrite, strong) IBOutlet NSWindow* codecOptionsWindow;
 
 @property (readwrite, strong) IBOutlet SampleLayerView* preview;
 
@@ -315,13 +316,16 @@
 
 - (IBAction)revealCodecOptions:(id)sender
 {
-//    [self.windowControllers[0].window beginSheet:<#(nonnull NSWindow *)#> completionHandler:<#^(NSModalResponse returnCode)handler#>
+    [self.windowControllers[0].window beginSheet:self.codecOptionsWindow completionHandler:^(NSModalResponse returnCode) {
+        
+    }];
 }
 
 - (IBAction)commitCodecOptions:(id)sender
 {
-    
+    [self.windowControllers[0].window endSheet:self.codecOptionsWindow];
 }
+
 - (IBAction) render:(NSButton *)sender
 {
 	if (sender.tag == 0)
