@@ -180,7 +180,31 @@
                                   @"8K",
                                   ];
     
+    [self.resolutionMenu removeAllItems];
     [self makeMenu:self.resolutionMenu representedObjects:resolutions titles:resolutionNames selector:@selector(setResolution:)];
+    
+    
+    
+    NSArray* tripleHeadResolutions = @[ [NSValue valueWithSize:NSMakeSize(640 * 3, 480)],
+                                        [NSValue valueWithSize:NSMakeSize(1280 * 3, 720)],
+                                        [NSValue valueWithSize:NSMakeSize(1920 * 3, 1080)],
+                                        [NSValue valueWithSize:NSMakeSize(2048 * 3, 1080)],
+                                        [NSValue valueWithSize:NSMakeSize(3840 * 3, 2160)],
+                                        [NSValue valueWithSize:NSMakeSize(4096 * 3, 2160)],
+                                        ];
+    
+    NSArray* tripleHeadResolutionNames = @[ @"480P TripleHead",
+                                  @"720P TripleHead",
+                                  @"1080P TripleHead",
+                                  @"2K TripleHead",
+                                  @"UHD TripleHead",
+                                  @"4K TripleHead",
+                                  ];
+    
+    [self.resolutionMenu.menu addItem:[NSMenuItem separatorItem]];
+
+    [self makeMenu:self.resolutionMenu representedObjects:tripleHeadResolutions titles:tripleHeadResolutionNames selector:@selector(setResolution:)];
+
     
     NSArray* frameRates = @[ [NSValue valueWithCMTime:CMTimeMake(1, 24)],
                              [NSValue valueWithCMTime:CMTimeMake(1, 25)],
@@ -198,6 +222,7 @@
                                  @"120",
                                  ];
     
+    [self.frameRateMenu removeAllItems];
     [self makeMenu:self.frameRateMenu representedObjects:frameRates titles:frameRateNames selector:@selector(setFrameRate:)];
     
     NSArray* codecs = @[AVVideoCodecAppleProRes4444,
@@ -212,6 +237,7 @@
                              @"H.264"
                              ];
     
+    [self.codecMenu removeAllItems];
     [self makeMenu:self.codecMenu representedObjects:codecs titles:codecNames selector:@selector(setCodec:)];
 
     
@@ -230,8 +256,6 @@
 
 - (void) makeMenu:(NSPopUpButton*)popUp representedObjects:(NSArray*)objects titles:(NSArray*)titles selector:(SEL)selector
 {
-    [popUp removeAllItems];
-
     for(int i = 0; i < objects.count; i++)
     {
         NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:titles[i] action:selector keyEquivalent:@""];
