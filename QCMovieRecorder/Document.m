@@ -37,6 +37,7 @@
 
 // Movie Writing
 @property (readwrite, assign) NSInteger durationH, durationM, durationS, duration;
+@property (readwrite, strong) dispatch_queue_t videoRenderQueue;
 @property (readwrite, strong) AVAssetWriter* assetWriter;
 @property (readwrite, strong) AVAssetWriterInput* assetWriterVideoInput;
 @property (readwrite, strong) AVAssetWriterInputPixelBufferAdaptor* assetWriterPixelBufferAdaptor;
@@ -44,6 +45,7 @@
 @property (readwrite, assign) CMTime frameInterval;
 @property (readwrite, assign) NSSize videoResolution;
 @property (readwrite, strong) NSString* codecString;
+@property (readwrite, assign) int antialiasFactor;
 
 // Interface
 @property (readwrite, strong) IBOutlet NSButton* renderButton;
@@ -53,6 +55,7 @@
 @property (readwrite, strong) IBOutlet NSPopUpButton* frameRateMenu;
 @property (readwrite, strong) IBOutlet NSPopUpButton* resolutionMenu;
 @property (readwrite, strong) IBOutlet NSPopUpButton* codecMenu;
+@property (readwrite, strong) IBOutlet NSPopUpButton* antialiasMenu;
 @property (readwrite, strong) IBOutlet NSButton* codecOptionsButton;
 @property (readwrite, strong) IBOutlet NSButton* enablePreviewButton;
 
@@ -72,15 +75,17 @@
 
         self.renderer = nil;
         
+        self.frameInterval = CMTimeMake(1, 24);
+        self.videoResolution = NSMakeSize(640, 480);
+        self.codecString = AVVideoCodecAppleProRes4444;
+        
+        self.videoRenderQueue = dispatch_queue_create("videoRenderQueue", DISPATCH_QUEUE_SERIAL);
         
         NSOpenGLPixelFormatAttribute attributes[] = {
             NSOpenGLPFAAllowOfflineRenderers,
             NSOpenGLPFAAccelerated,
             NSOpenGLPFAColorSize, 32,
             NSOpenGLPFADepthSize, 24,
-//            NSOpenGLPFAMultisample, 1,
-//            NSOpenGLPFASampleBuffers, 1,
-//            NSOpenGLPFASamples, 4,
             NSOpenGLPFANoRecovery,
             NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersionLegacy
         };
@@ -129,12 +134,9 @@
     self = [super initWithContentsOfURL:url ofType:typeName error:outError];
     if(self)
     {
-        
         VTRegisterProfessionalVideoWorkflowVideoDecoders();
         VTRegisterProfessionalVideoWorkflowVideoEncoders();
-        
         self.composition = [QCComposition compositionWithFile:url.path];
-        
     }
     
     return self;
@@ -150,7 +152,8 @@
     self.resolutionMenu.enabled = NO;
     self.frameRateMenu.enabled = NO;
     self.codecOptionsButton.enabled = NO;
-    
+    self.antialiasMenu.enabled = NO;
+
     [self buildMenus];
 }
 
@@ -209,6 +212,19 @@
                              ];
     
     [self makeMenu:self.codecMenu representedObjects:codecs titles:codecNames selector:@selector(setCodec:)];
+
+    
+    NSArray* aaName = @[@"None",
+                        @"4x",
+                        @"8x",
+                        ];
+    
+    NSArray* aaAmount = @[ @(1),
+                            @(4),
+                            @(8),
+                             ];
+    
+    [self makeMenu:self.antialiasMenu representedObjects:aaAmount titles:aaName selector:@selector(setAntialiasAmount:)];
 }
 
 - (void) makeMenu:(NSPopUpButton*)popUp representedObjects:(NSArray*)objects titles:(NSArray*)titles selector:(SEL)selector
@@ -238,6 +254,7 @@
             self.renderButton.enabled = YES;
             self.destinationLabel.stringValue = savePanel.URL.path;
             self.codecMenu.enabled = YES;
+            self.antialiasMenu.enabled = YES;
             self.resolutionMenu.enabled = YES;
             self.frameRateMenu.enabled = YES;
             self.codecOptionsButton.enabled = NO;
@@ -247,21 +264,22 @@
 
 - (IBAction) setResolution:(NSMenuItem*)sender
 {
-    NSLog(@"%@", sender.representedObject);
     self.videoResolution = [sender.representedObject sizeValue];
 }
 
 - (IBAction) setCodec:(NSMenuItem*)sender
 {
-    NSLog(@"%@", sender.representedObject);
     self.codecString = sender.representedObject;
 }
 
 - (IBAction) setFrameRate:(NSMenuItem*)sender
 {
-    NSLog(@"%@", sender.representedObject);
-    
     self.frameInterval = [sender.representedObject CMTimeValue];
+}
+
+- (IBAction)setAntialiasAmount:(NSMenuItem*)sender
+{
+    self.antialiasFactor = [sender.representedObject intValue];
 }
 
 - (IBAction)updateH:(NSTextField *)sender
@@ -298,6 +316,7 @@
 		self.resolutionMenu.enabled = NO;
 		self.frameRateMenu.enabled = NO;
 		self.codecOptionsButton.enabled = NO;
+        self.antialiasMenu.enabled = NO;
 		self.renderButton.title = @"Cancel";
 		
         // Setup outputs absed on chosen framerate, resolution, codec
@@ -346,8 +365,10 @@
 	}
     else
     {
-			// Cancel rendering
-#warning Unimplemented...
+        // Cancel rendering
+//        dispatch_async(self.videoRenderQueue, ^{
+            [self.assetWriter cancelWriting];
+//        });
 	}
 	
 	sender.tag = sender.tag == 0 ? 1 : 0;
@@ -360,14 +381,18 @@
     __block CMTime currentTime = kCMTimeZero;
     __block NSUInteger frameNumber = 0;
     
-    dispatch_queue_t videoRenderQueue = dispatch_queue_create("videoRenderQueue", DISPATCH_QUEUE_SERIAL);
-    
     dispatch_semaphore_t finishedSignal = dispatch_semaphore_create(0);
     
-    [self.assetWriterVideoInput requestMediaDataWhenReadyOnQueue:videoRenderQueue usingBlock:^{
+    [self.assetWriterVideoInput requestMediaDataWhenReadyOnQueue:self.videoRenderQueue usingBlock:^{
        
         // Are we above our duration?
         if( CMTIME_COMPARE_INLINE(currentTime, >=,  duration))
+        {
+            [self.assetWriterVideoInput markAsFinished];
+            
+            dispatch_semaphore_signal(finishedSignal);
+        }
+        else if (self.assetWriter.status == AVAssetWriterStatusCancelled || self.assetWriter.status == AVAssetWriterStatusFailed)
         {
             [self.assetWriterVideoInput markAsFinished];
             
@@ -427,7 +452,7 @@
             [self.renderer renderAtTime:CMTimeGetSeconds(currentTime) arguments:nil];
 
             // GL Syncronize contents of MSAA FBO
-            glFinish();
+//            glFinish();
 
             // MSAA Resolve / Blit to IOSurface attachment / FBO
             glBindFramebuffer(GL_READ_FRAMEBUFFER, msaaFBO);
@@ -467,7 +492,6 @@
             // Cleanup
             CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
         }
-        
     }];
     
     dispatch_semaphore_wait(finishedSignal, DISPATCH_TIME_FOREVER);
@@ -496,13 +520,13 @@
         // depth storage
         glGenRenderbuffers(1, &msaaFBODepthAttachment);
         glBindRenderbuffer(GL_RENDERBUFFER_EXT, msaaFBODepthAttachment);
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, 8, GL_DEPTH_COMPONENT, width, height);
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER, self.antialiasFactor, GL_DEPTH_COMPONENT, width, height);
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
         
         // color MSAA storage
         glGenRenderbuffers(1, &msaaFBOColorAttachment);
         glBindRenderbuffer(GL_RENDERBUFFER, msaaFBOColorAttachment);
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, 8, GL_RGBA, width, height);
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER, self.antialiasFactor, GL_RGBA, width, height);
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
         // attach our MSAA render storage and depth storage  to our msaaFrameBuffer

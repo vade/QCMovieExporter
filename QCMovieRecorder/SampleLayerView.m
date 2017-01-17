@@ -30,7 +30,6 @@
 
 - (void) commonInit
 {
-
     self.layer.backgroundColor = [NSColor blackColor].CGColor;
 }
 
