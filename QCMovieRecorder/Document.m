@@ -13,6 +13,7 @@
 #import <CoreMedia/CoreMedia.h>
 #import <Quartz/Quartz.h>
 #import <VideoToolbox/VideoToolbox.h>
+#import <Accelerate/Accelerate.h>
 #import "SampleLayerView.h"
 
 @interface Document ()
@@ -457,11 +458,6 @@
 
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();
-
-            // TODO: flipping projection matrix fucks up depth buffer
-            // flip if we need to
-//            if(CVImageBufferIsFlipped(ioSurfaceBackedPixelBuffer))
-//                glScaled(1, -1, 1);            
             
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
@@ -473,8 +469,8 @@
             
             [self.renderer renderAtTime:CMTimeGetSeconds(currentTime) arguments:nil];
 
-            // GL Syncronize contents of MSAA FBO
-//            glFinish();
+            // GL Syncronize contents of MSAA
+            glFlushRenderAPPLE();
 
             // MSAA Resolve / Blit to IOSurface attachment / FBO
             glBindFramebuffer(GL_READ_FRAMEBUFFER, msaaFBO);
@@ -484,35 +480,95 @@
             glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             
             // GL Syncronize / Readback IOSurface to pixel buffer
-            glFinish();
+            // Note glFlushRenderApple / glFlush should be sufficient as I understand it
+            // but we appear to get some flicker with them.
+            glFlushRenderAPPLE();
             
             // restore viewport, matrix
             glPopAttrib();
             
-            // Write pixel buffer to movie
-            if(![self.assetWriterPixelBufferAdaptor appendPixelBuffer:ioSurfaceBackedPixelBuffer withPresentationTime:currentTime])
-                NSLog(@"Unable to write frame at time: %@", CMTimeCopyDescription(kCFAllocatorDefault, currentTime));
             
-            
-            // Update UI on main queue
-            CVPixelBufferRetain(ioSurfaceBackedPixelBuffer);
-            dispatch_async(dispatch_get_main_queue(), ^{
+            // Use VImage to flip vertically if we need to
+            if(CVImageBufferIsFlipped(ioSurfaceBackedPixelBuffer))
+            {
+                // Create a new destination pixel buffer from our pool,
                 
-                if(self.enablePreviewButton.state == NSOnState)
-                    [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBuffer];
+                CVPixelBufferRef flippedIoSurfaceBackedPixelBuffer;
+                CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, self.assetWriterPixelBufferAdaptor.pixelBufferPool, &flippedIoSurfaceBackedPixelBuffer);
+
                 
+                // Lock base addresses for reading / writing
+                CVPixelBufferLockBaseAddress(ioSurfaceBackedPixelBuffer, kCVPixelBufferLock_ReadOnly);
+                CVPixelBufferLockBaseAddress(flippedIoSurfaceBackedPixelBuffer, 0);
+                
+                // make vImage buffers
+                
+                vImage_Buffer source;
+                source.data = CVPixelBufferGetBaseAddress(ioSurfaceBackedPixelBuffer);
+                source.rowBytes = CVPixelBufferGetBytesPerRow(ioSurfaceBackedPixelBuffer);
+                source.width = CVPixelBufferGetWidth(ioSurfaceBackedPixelBuffer);
+                source.height = CVPixelBufferGetHeight(ioSurfaceBackedPixelBuffer);
+                
+                vImage_Buffer dest;
+                dest.data = CVPixelBufferGetBaseAddress(flippedIoSurfaceBackedPixelBuffer);
+                dest.rowBytes = CVPixelBufferGetBytesPerRow(flippedIoSurfaceBackedPixelBuffer);
+                dest.width = CVPixelBufferGetWidth(flippedIoSurfaceBackedPixelBuffer);
+                dest.height = CVPixelBufferGetHeight(flippedIoSurfaceBackedPixelBuffer);
+                
+                vImageVerticalReflect_ARGB8888(&source, &dest, kvImageNoFlags);
+                
+                CVPixelBufferUnlockBaseAddress(ioSurfaceBackedPixelBuffer, kCVPixelBufferLock_ReadOnly);
+                CVPixelBufferUnlockBaseAddress(flippedIoSurfaceBackedPixelBuffer, 0);
+                
+                // Clean Up
                 CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
+
+                // Write pixel buffer to movie
+                if(![self.assetWriterPixelBufferAdaptor appendPixelBuffer:flippedIoSurfaceBackedPixelBuffer withPresentationTime:currentTime])
+                    NSLog(@"Unable to write frame at time: %@", CMTimeCopyDescription(kCFAllocatorDefault, currentTime));
                 
-                self.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
-            });
+                // Update UI on main queue
+                CVPixelBufferRetain(flippedIoSurfaceBackedPixelBuffer);
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    
+                    if(self.enablePreviewButton.state == NSOnState)
+                        [self.preview displayCVPIxelBuffer:flippedIoSurfaceBackedPixelBuffer];
+                    
+                    CVPixelBufferRelease(flippedIoSurfaceBackedPixelBuffer);
+                    
+                    self.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
+                });
+
+                // Cleanup
+                CVPixelBufferRelease(flippedIoSurfaceBackedPixelBuffer);
+                
+            }
+            else
+            {
+                // Write pixel buffer to movie
+                if(![self.assetWriterPixelBufferAdaptor appendPixelBuffer:ioSurfaceBackedPixelBuffer withPresentationTime:currentTime])
+                    NSLog(@"Unable to write frame at time: %@", CMTimeCopyDescription(kCFAllocatorDefault, currentTime));
+                
+                // Update UI on main queue
+                CVPixelBufferRetain(ioSurfaceBackedPixelBuffer);
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    
+                    if(self.enablePreviewButton.state == NSOnState)
+                        [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBuffer];
+                    
+                    CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
+                    
+                    self.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
+                });
+
+                // Cleanup
+                CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
+            }
+            
             
             // increment time
             currentTime = CMTimeAdd(currentTime, self.frameInterval);
             frameNumber++;
-
-            
-            // Cleanup
-            CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
         }
     }];
     

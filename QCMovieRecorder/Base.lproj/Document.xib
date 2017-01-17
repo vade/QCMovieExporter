@@ -96,14 +96,6 @@
                             <action selector="chooseRenderDestination:" target="-2" id="omE-Za-yTL"/>
                         </connections>
                     </button>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bC7-5B-ixo">
-                        <rect key="frame" x="18" y="193" width="137" height="14"/>
-                        <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" enabled="NO" sendsActionOnEndEditing="YES" title="/Path/To/Output/File.mov" id="dDk-Co-E4O">
-                            <font key="font" metaFont="smallSystem"/>
-                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                        </textFieldCell>
-                    </textField>
                     <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="YB6-NZ-nqG">
                         <rect key="frame" x="17" y="134" width="112" height="22"/>
                         <popUpButtonCell key="cell" type="push" title="ProRes 4444" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="YAN-dQ-Lsn" id="fnS-bV-1Ju">
@@ -145,8 +137,11 @@
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <button verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="tRi-NG-Nx5">
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="tRi-NG-Nx5">
                         <rect key="frame" x="20" y="110" width="106" height="19"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="106" id="Lz3-gE-SkR"/>
+                        </constraints>
                         <buttonCell key="cell" type="roundTextured" title="Codec Options" bezelStyle="texturedRounded" alignment="center" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="X6a-CZ-udM">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="smallSystem"/>
@@ -258,9 +253,17 @@
                             </menu>
                         </popUpButtonCell>
                     </popUpButton>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bC7-5B-ixo">
+                        <rect key="frame" x="20" y="193" width="137" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" enabled="NO" sendsActionOnEndEditing="YES" title="/Path/To/Output/File.mov" id="dDk-Co-E4O">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
                 </subviews>
                 <constraints>
-                    <constraint firstItem="bC7-5B-ixo" firstAttribute="leading" secondItem="iEL-a9-NIl" secondAttribute="leading" id="3mL-Y9-N5j"/>
+                    <constraint firstItem="bC7-5B-ixo" firstAttribute="leading" secondItem="iEL-a9-NIl" secondAttribute="leading" constant="2" id="3mL-Y9-N5j"/>
                     <constraint firstItem="1If-9d-D7v" firstAttribute="top" secondItem="tRi-NG-Nx5" secondAttribute="bottom" constant="16" id="4Mm-OK-aP6"/>
                     <constraint firstItem="Qta-dD-cV4" firstAttribute="baseline" secondItem="XuT-SF-ITE" secondAttribute="baseline" id="4Zc-Nr-rGC"/>
                     <constraint firstItem="iEL-a9-NIl" firstAttribute="leading" secondItem="abc-5s-xWA" secondAttribute="leading" id="AGl-XL-Y9x"/>
