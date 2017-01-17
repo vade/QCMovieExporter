@@ -36,6 +36,7 @@
 @property (readwrite, strong) QCComposition* composition;
 
 // Movie Writing
+@property (readwrite, assign) NSInteger durationH, durationM, durationS, duration;
 @property (readwrite, assign) NSUInteger videoWidth;
 @property (readwrite, assign) NSUInteger videoHeight;
 @property (readwrite, strong) AVAssetWriter* assetWriter;
@@ -93,6 +94,10 @@
             }
             
         }
+		
+			// Default duration (30 seconds)
+		_durationH = 0; _durationM = 0; _durationS = 30;
+		[self updateDuration];
     }
     
     return self;
@@ -203,31 +208,59 @@
     }];
 }
 
-- (IBAction) render:(id)sender
+- (IBAction)updateH:(NSTextField *)sender {
+	self.durationH = sender.integerValue;
+	[self updateDuration];
+}
+
+- (IBAction)updateM:(NSTextField *)sender {
+	self.durationM = sender.integerValue;
+	[self updateDuration];
+}
+
+- (IBAction)updateS:(NSTextField *)sender {
+	self.durationS = sender.integerValue;
+	[self updateDuration];
+}
+
+- (void) updateDuration {
+	self.duration = (_durationH * 60 * 60) + (_durationM * 60) + _durationS;
+}
+
+- (IBAction) render:(NSButton *)sender
 {
-    // Disable changing options once we render - makes no sense
-    self.destinationButton.enabled = NO;
-    self.codecMenu.enabled = NO;
-    self.resolutionMenu.enabled = NO;
-    self.frameRateMenu.enabled = NO;
-    self.codecOptionsButton.enabled = NO;
-
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-
-        // Syncronous activity - effectively disables AppNap / re-enables AppNap on completion
-        [NSProcessInfo.processInfo performActivityWithOptions:NSActivityUserInitiated reason:@"Render" usingBlock:^{
-            [self.assetWriter startWriting];
-            [self.assetWriter startSessionAtSourceTime:kCMTimeZero];
-            [self renderAndWrite];
-        }];
-    });
+	if (sender.tag == 0) {
+			// Start rendering
+			// Disable changing options once we render - makes no sense
+		self.destinationButton.enabled = NO;
+		self.codecMenu.enabled = NO;
+		self.resolutionMenu.enabled = NO;
+		self.frameRateMenu.enabled = NO;
+		self.codecOptionsButton.enabled = NO;
+		self.renderButton.title = @"Cancel";
+		
+		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+			
+				// Syncronous activity - effectively disables AppNap / re-enables AppNap on completion
+			[NSProcessInfo.processInfo performActivityWithOptions:NSActivityUserInitiated reason:@"Render" usingBlock:^{
+				[self.assetWriter startWriting];
+				[self.assetWriter startSessionAtSourceTime:kCMTimeZero];
+				[self renderAndWrite];
+			}];
+		});
+	} else {
+			// Cancel rendering
+#warning Unimplemented...
+	}
+	
+	sender.tag = sender.tag == 0 ? 1 : 0;
 }
 
 
 - (void) renderAndWrite
 {
     CMTime frameInterval = CMTimeMake(1, 60);
-    CMTime duration = CMTimeMakeWithSeconds(10, 600);
+    CMTime duration = CMTimeMakeWithSeconds(self.duration, 600);
     __block CMTime currentTime = kCMTimeZero;
     __block NSUInteger frameNumber = 0;
     
