@@ -37,10 +37,10 @@
 
 // Movie Writing
 @property (readwrite, assign) NSInteger durationH, durationM, durationS, duration;
-@property (readwrite, strong) dispatch_queue_t videoRenderQueue;
 @property (readwrite, strong) AVAssetWriter* assetWriter;
 @property (readwrite, strong) AVAssetWriterInput* assetWriterVideoInput;
 @property (readwrite, strong) AVAssetWriterInputPixelBufferAdaptor* assetWriterPixelBufferAdaptor;
+@property (atomic, readwrite, assign) BOOL shouldCanel;
 
 @property (readwrite, assign) CMTime frameInterval;
 @property (readwrite, assign) NSSize videoResolution;
@@ -75,11 +75,10 @@
 
         self.renderer = nil;
         
+        self.shouldCanel = NO;
         self.frameInterval = CMTimeMake(1, 24);
         self.videoResolution = NSMakeSize(640, 480);
         self.codecString = AVVideoCodecAppleProRes4444;
-        
-        self.videoRenderQueue = dispatch_queue_create("videoRenderQueue", DISPATCH_QUEUE_SERIAL);
         
         NSOpenGLPixelFormatAttribute attributes[] = {
             NSOpenGLPFAAllowOfflineRenderers,
@@ -365,11 +364,10 @@
 	}
     else
     {
-        // Cancel rendering
-//        dispatch_async(self.videoRenderQueue, ^{
-            [self.assetWriter cancelWriting];
-//        });
-	}
+        // Note we want to bail cleanly, so we dont call
+        // cancel on our asset reader (only if we have an error)
+        self.shouldCanel = YES;
+    }
 	
 	sender.tag = sender.tag == 0 ? 1 : 0;
 }
@@ -382,14 +380,17 @@
     __block NSUInteger frameNumber = 0;
     
     dispatch_semaphore_t finishedSignal = dispatch_semaphore_create(0);
-    
-    [self.assetWriterVideoInput requestMediaDataWhenReadyOnQueue:self.videoRenderQueue usingBlock:^{
+    dispatch_queue_t videoRenderQueue = dispatch_queue_create("videoRenderQueue", DISPATCH_QUEUE_SERIAL);
+
+    [self.assetWriterVideoInput requestMediaDataWhenReadyOnQueue:videoRenderQueue usingBlock:^{
        
-        // Are we above our duration?
-        if( CMTIME_COMPARE_INLINE(currentTime, >=,  duration))
+        // Are we above our duration, or do we bail nicely?
+        if( CMTIME_COMPARE_INLINE(currentTime, >=,  duration) || self.shouldCanel)
         {
             [self.assetWriterVideoInput markAsFinished];
             
+            self.shouldCanel = NO;
+
             dispatch_semaphore_signal(finishedSignal);
         }
         else if (self.assetWriter.status == AVAssetWriterStatusCancelled || self.assetWriter.status == AVAssetWriterStatusFailed)
