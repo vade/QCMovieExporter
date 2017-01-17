@@ -20,7 +20,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		1BB8BD051E2C797C0021C1B4 /* QCMovieRecorder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QCMovieRecorder.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1BB8BD051E2C797C0021C1B4 /* Quartz Catalyst.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Quartz Catalyst.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1BB8BD081E2C797C0021C1B4 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		1BB8BD091E2C797C0021C1B4 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		1BB8BD0C1E2C797C0021C1B4 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -63,7 +63,7 @@
 		1BB8BD061E2C797C0021C1B4 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				1BB8BD051E2C797C0021C1B4 /* QCMovieRecorder.app */,
+				1BB8BD051E2C797C0021C1B4 /* Quartz Catalyst.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -107,9 +107,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1BB8BD041E2C797C0021C1B4 /* QCMovieRecorder */ = {
+		1BB8BD041E2C797C0021C1B4 /* Quartz Catalyst */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1BB8BD1C1E2C797C0021C1B4 /* Build configuration list for PBXNativeTarget "QCMovieRecorder" */;
+			buildConfigurationList = 1BB8BD1C1E2C797C0021C1B4 /* Build configuration list for PBXNativeTarget "Quartz Catalyst" */;
 			buildPhases = (
 				1BB8BD011E2C797C0021C1B4 /* Sources */,
 				1BB8BD021E2C797C0021C1B4 /* Frameworks */,
@@ -119,9 +119,9 @@
 			);
 			dependencies = (
 			);
-			name = QCMovieRecorder;
+			name = "Quartz Catalyst";
 			productName = QCMovieRecorder;
-			productReference = 1BB8BD051E2C797C0021C1B4 /* QCMovieRecorder.app */;
+			productReference = 1BB8BD051E2C797C0021C1B4 /* Quartz Catalyst.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -139,7 +139,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 1BB8BD001E2C797C0021C1B4 /* Build configuration list for PBXProject "QCMovieRecorder" */;
+			buildConfigurationList = 1BB8BD001E2C797C0021C1B4 /* Build configuration list for PBXProject "Quartz Catalyst" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -152,7 +152,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				1BB8BD041E2C797C0021C1B4 /* QCMovieRecorder */,
+				1BB8BD041E2C797C0021C1B4 /* Quartz Catalyst */,
 			);
 		};
 /* End PBXProject section */
@@ -318,7 +318,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1BB8BD001E2C797C0021C1B4 /* Build configuration list for PBXProject "QCMovieRecorder" */ = {
+		1BB8BD001E2C797C0021C1B4 /* Build configuration list for PBXProject "Quartz Catalyst" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1BB8BD1A1E2C797C0021C1B4 /* Debug */,
@@ -327,13 +327,14 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1BB8BD1C1E2C797C0021C1B4 /* Build configuration list for PBXNativeTarget "QCMovieRecorder" */ = {
+		1BB8BD1C1E2C797C0021C1B4 /* Build configuration list for PBXNativeTarget "Quartz Catalyst" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1BB8BD1D1E2C797C0021C1B4 /* Debug */,
 				1BB8BD1E1E2C797C0021C1B4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

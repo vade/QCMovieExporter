@@ -269,6 +269,15 @@
 - (IBAction) setCodec:(NSMenuItem*)sender
 {
     self.codecString = sender.representedObject;
+    
+    if([self.codecString isEqualToString:AVVideoCodecJPEG] || [self.codecString isEqualToString:AVVideoCodecH264])
+    {
+        self.codecOptionsButton.enabled = YES;
+    }
+    else
+    {
+        self.codecOptionsButton.enabled = NO;
+    }
 }
 
 - (IBAction) setFrameRate:(NSMenuItem*)sender
@@ -304,6 +313,15 @@
 	self.duration = (_durationH * 60 * 60) + (_durationM * 60) + _durationS;
 }
 
+- (IBAction)revealCodecOptions:(id)sender
+{
+//    [self.windowControllers[0].window beginSheet:<#(nonnull NSWindow *)#> completionHandler:<#^(NSModalResponse returnCode)handler#>
+}
+
+- (IBAction)commitCodecOptions:(id)sender
+{
+    
+}
 - (IBAction) render:(NSButton *)sender
 {
 	if (sender.tag == 0)
@@ -350,11 +368,10 @@
         {
             [self.assetWriter addInput:self.assetWriterVideoInput];
         }
-
         
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
 			
-				// Syncronous activity - effectively disables AppNap / re-enables AppNap on completion
+            // Syncronous activity - effectively disables AppNap / re-enables AppNap on completion
 			[NSProcessInfo.processInfo performActivityWithOptions:NSActivityUserInitiated reason:@"Render" usingBlock:^{
 				[self.assetWriter startWriting];
 				[self.assetWriter startSessionAtSourceTime:kCMTimeZero];
