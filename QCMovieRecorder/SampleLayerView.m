@@ -42,6 +42,7 @@
 - (void) displayCVPIxelBuffer:(CVPixelBufferRef)pixelBuffer
 {
     self.layer.contents = (__bridge id _Nullable)(pixelBuffer);
+    self.layer.contentsGravity = @"resizeAspect";
 }
 
 
