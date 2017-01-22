@@ -27,6 +27,8 @@
     GLuint fbo;
     // Backed by IOSurface
     GLuint fboColorAttachment;
+    GLuint fboDepthAttachment;
+    GLuint fboDepthAttachmentSurface;
     
     BOOL createdGLResources;
 }
@@ -50,8 +52,6 @@
 
 // Interface
 @property (readwrite, strong) IBOutlet NSButton* renderButton;
-@property (readwrite, strong) IBOutlet NSButton* destinationButton;
-@property (readwrite, strong) IBOutlet NSTextField* destinationLabel;
 @property (readwrite, strong) IBOutlet NSProgressIndicator* renderProgress;
 @property (readwrite, strong) IBOutlet NSPopUpButton* frameRateMenu;
 @property (readwrite, strong) IBOutlet NSPopUpButton* resolutionMenu;
@@ -154,15 +154,12 @@
 
 - (void)windowControllerDidLoadNib:(NSWindowController *)windowController;
 {
-    // disable certain UI items until choices have been made
-    self.destinationButton.enabled = YES;
-    
-    self.renderButton.enabled = NO;
-    self.codecMenu.enabled = NO;
-    self.resolutionMenu.enabled = NO;
-    self.frameRateMenu.enabled = NO;
-    self.codecOptionsButton.enabled = NO;
-    self.antialiasMenu.enabled = NO;
+    self.renderButton.enabled = YES;
+    self.codecMenu.enabled = YES;
+    self.resolutionMenu.enabled = YES;
+    self.frameRateMenu.enabled = YES;
+    self.codecOptionsButton.enabled = YES;
+    self.antialiasMenu.enabled = YES;
 
     [self buildMenus];
 }
@@ -282,27 +279,41 @@
     }
 }
 
-- (IBAction) chooseRenderDestination:(id)sender
+- (IBAction) chooseRenderDestination:(NSButton *)sender
 {
-    NSSavePanel* savePanel = [NSSavePanel savePanel];
-    
-    savePanel.allowedFileTypes = @[@"mov"];
-    
-    [savePanel beginSheetModalForWindow:self.windowControllers[0].window completionHandler:^(NSInteger result) {
+    if(sender.tag == 0)
+    {
+        NSSavePanel* savePanel = [NSSavePanel savePanel];
         
-        if(result == NSFileHandlingPanelOKButton)
-        {
-            self.assetWriter = [[AVAssetWriter alloc] initWithURL:savePanel.URL fileType:AVFileTypeQuickTimeMovie error:nil];
+        savePanel.allowedFileTypes = @[@"mov"];
         
-            self.renderButton.enabled = YES;
-            self.destinationLabel.stringValue = savePanel.URL.path;
-            self.codecMenu.enabled = YES;
-            self.antialiasMenu.enabled = YES;
-            self.resolutionMenu.enabled = YES;
-            self.frameRateMenu.enabled = YES;
-            self.codecOptionsButton.enabled = NO;
-        }
-    }];
+        [savePanel beginSheetModalForWindow:self.windowControllers[0].window completionHandler:^(NSInteger result) {
+            
+            if(result == NSFileHandlingPanelOKButton)
+            {
+                self.assetWriter = [[AVAssetWriter alloc] initWithURL:savePanel.URL fileType:AVFileTypeQuickTimeMovie error:nil];
+                
+                self.codecMenu.enabled = YES;
+                self.antialiasMenu.enabled = YES;
+                self.resolutionMenu.enabled = YES;
+                self.frameRateMenu.enabled = YES;
+                self.codecOptionsButton.enabled = NO;
+                
+                
+                [self render:sender];
+                
+                sender.tag = sender.tag == 0 ? 1 : 0;
+            }
+        }];
+    }
+    else
+    {
+        // Note we want to bail cleanly, so we dont call
+        // cancel on our asset reader (only if we have an error)
+        self.shouldCanel = YES;
+    }
+    
+
 }
 
 - (IBAction) setResolution:(NSMenuItem*)sender
@@ -375,7 +386,6 @@
     {
         // Start rendering
         // Disable changing options once we render - makes no sense
-		self.destinationButton.enabled = NO;
 		self.codecMenu.enabled = NO;
 		self.resolutionMenu.enabled = NO;
 		self.frameRateMenu.enabled = NO;
@@ -439,14 +449,6 @@
 			}];
 		});
 	}
-    else
-    {
-        // Note we want to bail cleanly, so we dont call
-        // cancel on our asset reader (only if we have an error)
-        self.shouldCanel = YES;
-    }
-	
-	sender.tag = sender.tag == 0 ? 1 : 0;
 }
 
 
@@ -481,11 +483,16 @@
             // assign context
             [self.context makeCurrentContext];
         
-            // create texture attachment from IOSurfaceBacked PixelBuffer
-            CVPixelBufferRef ioSurfaceBackedPixelBuffer;
-            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, self.assetWriterPixelBufferAdaptor.pixelBufferPool, &ioSurfaceBackedPixelBuffer);
-            GLsizei width = (GLsizei) CVPixelBufferGetWidth(ioSurfaceBackedPixelBuffer);
-            GLsizei height = (GLsizei) CVPixelBufferGetHeight(ioSurfaceBackedPixelBuffer);
+            // create color texture attachment from IOSurface backed CVPixelBuffer
+            CVPixelBufferRef ioSurfaceBackedPixelBufferColor;
+            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, self.assetWriterPixelBufferAdaptor.pixelBufferPool, &ioSurfaceBackedPixelBufferColor);
+
+            //create depth texture attachment from IOSurface backed CVPixelBuffer
+            CVPixelBufferRef ioSurfaceBackedPixelBufferDepth;
+            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, self.assetWriterPixelBufferAdaptor.pixelBufferPool, &ioSurfaceBackedPixelBufferDepth);
+
+            GLsizei width = (GLsizei) CVPixelBufferGetWidth(ioSurfaceBackedPixelBufferColor);
+            GLsizei height = (GLsizei) CVPixelBufferGetHeight(ioSurfaceBackedPixelBufferColor);
 
             // Need to create Renderer on same thread we use it on, (ugh)
             if(self.renderer == nil)
@@ -500,7 +507,7 @@
             }
             
             // create GL resources if we need it
-            [self createFBOWithCVPixelBuffer:ioSurfaceBackedPixelBuffer];
+            [self createFBOWithCVPixelBufferColorAttachment:ioSurfaceBackedPixelBufferColor depthAttachment:ioSurfaceBackedPixelBufferDepth];
             
             // bind FBO
             glBindFramebuffer(GL_FRAMEBUFFER, msaaFBO);
@@ -533,6 +540,16 @@
             
             // blit the whole extent from read to draw
             glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+            // blit the whole extent from read to draw
+            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            
+            // Read from our resolved FBO so we can copy text
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+            
+            // copy our valid depth to our IOSurface depth
+            glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachmentSurface);
+            glCopyTexSubImage2D(GL_TEXTURE_RECTANGLE_EXT, 0, 0, 0, 0, 0, width, height);
             
             // GL Syncronize / Readback IOSurface to pixel buffer
             // Note glFlushRenderApple / glFlush should be sufficient as I understand it
@@ -544,22 +561,22 @@
             
             
             // Use VImage to flip vertically if we need to
-            if(CVImageBufferIsFlipped(ioSurfaceBackedPixelBuffer))
+            if(CVImageBufferIsFlipped(ioSurfaceBackedPixelBufferColor))
             {
                 // Create a new destination pixel buffer from our pool,
                 CVPixelBufferRef flippedIoSurfaceBackedPixelBuffer;
                 CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, self.assetWriterPixelBufferAdaptor.pixelBufferPool, &flippedIoSurfaceBackedPixelBuffer);
                 
                 // Lock base addresses for reading / writing
-                CVPixelBufferLockBaseAddress(ioSurfaceBackedPixelBuffer, kCVPixelBufferLock_ReadOnly);
+                CVPixelBufferLockBaseAddress(ioSurfaceBackedPixelBufferColor, kCVPixelBufferLock_ReadOnly);
                 CVPixelBufferLockBaseAddress(flippedIoSurfaceBackedPixelBuffer, 0);
                 
                 // make vImage buffers
                 vImage_Buffer source;
-                source.data = CVPixelBufferGetBaseAddress(ioSurfaceBackedPixelBuffer);
-                source.rowBytes = CVPixelBufferGetBytesPerRow(ioSurfaceBackedPixelBuffer);
-                source.width = CVPixelBufferGetWidth(ioSurfaceBackedPixelBuffer);
-                source.height = CVPixelBufferGetHeight(ioSurfaceBackedPixelBuffer);
+                source.data = CVPixelBufferGetBaseAddress(ioSurfaceBackedPixelBufferColor);
+                source.rowBytes = CVPixelBufferGetBytesPerRow(ioSurfaceBackedPixelBufferColor);
+                source.width = CVPixelBufferGetWidth(ioSurfaceBackedPixelBufferColor);
+                source.height = CVPixelBufferGetHeight(ioSurfaceBackedPixelBufferColor);
                 
                 vImage_Buffer dest;
                 dest.data = CVPixelBufferGetBaseAddress(flippedIoSurfaceBackedPixelBuffer);
@@ -570,9 +587,9 @@
                 vImageVerticalReflect_ARGB8888(&source, &dest, kvImageNoFlags);
                 
                 // Clean Up
-                CVPixelBufferUnlockBaseAddress(ioSurfaceBackedPixelBuffer, kCVPixelBufferLock_ReadOnly);
+                CVPixelBufferUnlockBaseAddress(ioSurfaceBackedPixelBufferColor, kCVPixelBufferLock_ReadOnly);
                 CVPixelBufferUnlockBaseAddress(flippedIoSurfaceBackedPixelBuffer, 0);
-                CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
+                CVPixelBufferRelease(ioSurfaceBackedPixelBufferColor);
 
                 // Write pixel buffer to movie
                 if(![self.assetWriterPixelBufferAdaptor appendPixelBuffer:flippedIoSurfaceBackedPixelBuffer withPresentationTime:currentTime])
@@ -580,40 +597,47 @@
                 
                 // Update UI on main queue
                 CVPixelBufferRetain(flippedIoSurfaceBackedPixelBuffer);
+                CVPixelBufferRetain(ioSurfaceBackedPixelBufferDepth);
                 dispatch_async(dispatch_get_main_queue(), ^{
                     
                     if(self.enablePreviewButton.state == NSOnState)
-                        [self.preview displayCVPIxelBuffer:flippedIoSurfaceBackedPixelBuffer];
+                        [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBufferDepth];
                     
                     CVPixelBufferRelease(flippedIoSurfaceBackedPixelBuffer);
-                    
+                    CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
+
                     self.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
                 });
 
                 // Cleanup
                 CVPixelBufferRelease(flippedIoSurfaceBackedPixelBuffer);
+                CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
                 
             }
             else
             {
                 // Write pixel buffer to movie
-                if(![self.assetWriterPixelBufferAdaptor appendPixelBuffer:ioSurfaceBackedPixelBuffer withPresentationTime:currentTime])
+                if(![self.assetWriterPixelBufferAdaptor appendPixelBuffer:ioSurfaceBackedPixelBufferColor withPresentationTime:currentTime])
                     NSLog(@"Unable to write frame at time: %@", CMTimeCopyDescription(kCFAllocatorDefault, currentTime));
                 
                 // Update UI on main queue
-                CVPixelBufferRetain(ioSurfaceBackedPixelBuffer);
+                // Update UI on main queue
+                CVPixelBufferRetain(ioSurfaceBackedPixelBufferColor);
+                CVPixelBufferRetain(ioSurfaceBackedPixelBufferDepth);
                 dispatch_async(dispatch_get_main_queue(), ^{
                     
                     if(self.enablePreviewButton.state == NSOnState)
-                        [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBuffer];
+                        [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBufferDepth];
                     
-                    CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
+                    CVPixelBufferRelease(ioSurfaceBackedPixelBufferColor);
+                    CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
                     
                     self.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
                 });
 
                 // Cleanup
-                CVPixelBufferRelease(ioSurfaceBackedPixelBuffer);
+                CVPixelBufferRelease(ioSurfaceBackedPixelBufferColor);
+                CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
             }
             
             
@@ -632,12 +656,12 @@
     }];
 }
 
-- (void) createFBOWithCVPixelBuffer:(CVPixelBufferRef)pixelBuffer
+- (void) createFBOWithCVPixelBufferColorAttachment:(CVPixelBufferRef)colorPixelBuffer depthAttachment:(CVPixelBufferRef)depthPixelBuffer
 {
     if(!createdGLResources)
     {
-        GLsizei width = (GLsizei) CVPixelBufferGetWidth(pixelBuffer);
-        GLsizei height = (GLsizei) CVPixelBufferGetHeight(pixelBuffer);
+        GLsizei width = (GLsizei) CVPixelBufferGetWidth(colorPixelBuffer);
+        GLsizei height = (GLsizei) CVPixelBufferGetHeight(colorPixelBuffer);
         
         // Final MSAA FBO resolve target
         glGenFramebuffers(1, &fbo);
@@ -659,8 +683,8 @@
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
         // attach our MSAA render storage and depth storage  to our msaaFrameBuffer
-        glFramebufferRenderbufferEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, msaaFBOColorAttachment);
-        glFramebufferRenderbufferEXT(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, msaaFBODepthAttachment);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, msaaFBOColorAttachment);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, msaaFBODepthAttachment);
         
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if(status != GL_FRAMEBUFFER_COMPLETE)
@@ -671,12 +695,12 @@
         createdGLResources = YES;
     }
     
-    // Re-assign our MSAA resolve color attachment to our current IOSurfaceID
+    // Re-assign our MSAA resolve color/depth attachments to our current IOSurfaceID
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     
     if(fboColorAttachment)
         glDeleteTextures(1, &fboColorAttachment);
-    
+
     // color storage
     glGenTextures(1, &fboColorAttachment);
     glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboColorAttachment);
@@ -685,11 +709,11 @@
     CGLTexImageIOSurface2D(self.context.CGLContextObj,
                            GL_TEXTURE_RECTANGLE_EXT,
                            GL_RGBA,
-                           (GLsizei) CVPixelBufferGetWidth(pixelBuffer),
-                           (GLsizei) CVPixelBufferGetHeight(pixelBuffer),
+                           (GLsizei) CVPixelBufferGetWidth(colorPixelBuffer),
+                           (GLsizei) CVPixelBufferGetHeight(colorPixelBuffer),
                            GL_BGRA,
                            GL_UNSIGNED_INT_8_8_8_8_REV,
-                           CVPixelBufferGetIOSurface(pixelBuffer),
+                           CVPixelBufferGetIOSurface(colorPixelBuffer),
                            0);
     
     // attach texture to framebuffer
@@ -699,8 +723,47 @@
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if(status != GL_FRAMEBUFFER_COMPLETE)
     {
-        NSLog(@"could not create FBO - bailing");
+        NSLog(@"could not Attach Color to FBO - bailing %i", status);
     }
+    
+    // Depth Storage
+    // IOSurface doesnt appear to be able to bind to a depth texture
+    // So we make a depth texture and then in our render pass,
+    // Copy a real depth texture to our IOSurface backed texture via glCopyImageSubData
+
+    if(fboDepthAttachment)
+        glDeleteTextures(1, &fboDepthAttachment);
+
+    glGenTextures(1, &fboDepthAttachment);
+    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachment);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_EXT, 0, GL_DEPTH_COMPONENT24, (GLsizei) CVPixelBufferGetWidth(colorPixelBuffer), (GLsizei) CVPixelBufferGetHeight(colorPixelBuffer), 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+
+    
+    // attach texture to framebuffer
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachment, 0);
+    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if(status != GL_FRAMEBUFFER_COMPLETE)
+    {
+        NSLog(@"could not Attach Depth to FBO - bailing %i", status);
+    }
+    
+    if(fboDepthAttachmentSurface)
+        glDeleteTextures(1, &fboDepthAttachmentSurface);
+
+    glGenTextures(1, &fboDepthAttachmentSurface);
+    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachmentSurface);
+    // Back bound texture with IOSurface
+    CGLTexImageIOSurface2D(self.context.CGLContextObj,
+                           GL_TEXTURE_RECTANGLE_EXT,
+                           GL_RGBA,
+                           (GLsizei) CVPixelBufferGetWidth(depthPixelBuffer),
+                           (GLsizei) CVPixelBufferGetHeight(depthPixelBuffer),
+                           GL_BGRA,
+                           GL_UNSIGNED_INT_8_8_8_8_REV,
+                           CVPixelBufferGetIOSurface(depthPixelBuffer),
+                           0);
+    
+    
     
 //    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, 0);
 //    glBindFramebuffer(GL_FRAMEBUFFER, 0);
