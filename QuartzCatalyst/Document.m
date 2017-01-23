@@ -546,6 +546,8 @@
             
             // Read from our resolved FBO so we can copy text
             glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+            glReadBuffer(GL_DEPTH_ATTACHMENT);
             
             // copy our valid depth to our IOSurface depth
             glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachmentSurface);
@@ -556,9 +558,9 @@
             // but we appear to get some flicker with them.
             glFlushRenderAPPLE();
             
-            // restore viewport, matrix
+//            glReadBuffer(GL_BACK);
+
             glPopAttrib();
-            
             
             // Use VImage to flip vertically if we need to
             if(CVImageBufferIsFlipped(ioSurfaceBackedPixelBufferColor))
