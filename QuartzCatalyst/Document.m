@@ -23,7 +23,7 @@
     // Depth Component texture backing
     // We have to resort to:
     // 1) Rendering QC into a multisample storage FBO
-    // 2) Blitting said FBO to single sample textures for MSAA resolve
+    // 2) Blitting said FBO to FBO attached with single sample textures for MSAA resolve
     // 3) Rendering those textures through a shader pass to get linearized depth
     // to our IOSurface
     
@@ -38,9 +38,9 @@
     GLuint msaaFBOColorAttachment;
     
     // Blit target from MSAA
-    GLuint blitFbo;
-    GLuint blitFboDepthAttachment;
-    GLuint blitFboColorAttachment;
+    GLuint blitFBO;
+    GLuint blitFBODepthAttachment;
+    GLuint blitFBOColorAttachment;
     
     // Backed by IOSurfaces
     GLuint fbo;
@@ -319,7 +319,6 @@
                 self.frameRateMenu.enabled = YES;
                 self.codecOptionsButton.enabled = NO;
                 
-                
                 [self render:sender];
                 
                 sender.tag = sender.tag == 0 ? 1 : 0;
@@ -332,8 +331,6 @@
         // cancel on our asset reader (only if we have an error)
         self.shouldCanel = YES;
     }
-    
-
 }
 
 - (IBAction) setResolution:(NSMenuItem*)sender
@@ -529,6 +526,8 @@
             // create GL resources if we need it
             [self createFBOWithCVPixelBufferColorAttachment:ioSurfaceBackedPixelBufferColor depthAttachment:ioSurfaceBackedPixelBufferDepth];
             
+#pragma mark - Render MSAA Pass
+            
             // bind FBO
             glBindFramebuffer(GL_FRAMEBUFFER, msaaFBO);
 
@@ -554,20 +553,68 @@
             // GL Syncronize contents of MSAA
             glFlushRenderAPPLE();
 
+#pragma mark - MSAA Resolve Blit Pass
+            
             // MSAA Resolve / Blit to IOSurface attachment / FBO
             glBindFramebuffer(GL_READ_FRAMEBUFFER, msaaFBO);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, blitFBO);
             
             // blit the whole extent from read to draw
-            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT , GL_NEAREST);
+
+            // GL Syncronize contents of Blit Target
+            glFlushRenderAPPLE();
+
+#pragma mark - Color and Depth to IOSurface Pass
+            
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+            
+            glViewport(0, 0, width, height);
+            glOrtho(0, width, 0, height, -1, 1);
+
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
+
+            glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+            
+            // Render Color to color, depth to color 1
+            
+            glEnable(GL_TEXTURE_RECTANGLE_EXT);
+            glBindTexture(GL_TEXTURE_RECTANGLE_EXT, blitFBOColorAttachment);
+            glColor4f(1.0, 1.0, 1.0, 1.0);
+            
+            // move to VA for rendering
+            GLfloat tex_coords[] =
+            {
+                width, height,
+                0.0,height,
+                0.0,0.0,
+                width, 0.0
+            };
+            
+            GLfloat verts[] =
+            {
+                1.0,1.0,
+                -1.0,1.0,
+                -1.0,-1.0,
+                1.0,-1.0
+            };
+            
+            glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+            glTexCoordPointer(2, GL_FLOAT, 0, tex_coords );
+            glEnableClientState(GL_VERTEX_ARRAY);
+            glVertexPointer(2, GL_FLOAT, 0, verts );
+            glDrawArrays( GL_TRIANGLE_FAN, 0, 4 );	// TODO: GL_QUADS or GL_TRIANGLE_FAN?
+
             
             // GL Syncronize / Readback IOSurface to pixel buffer
             // Note glFlushRenderApple / glFlush should be sufficient as I understand it
             // but we appear to get some flicker with them.
             glFlushRenderAPPLE();
             
-//            glReadBuffer(GL_BACK);
-
             glPopAttrib();
             
             // Use VImage to flip vertically if we need to
@@ -611,7 +658,7 @@
                 dispatch_async(dispatch_get_main_queue(), ^{
                     
                     if(self.enablePreviewButton.state == NSOnState)
-                        [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBufferDepth];
+                        [self.preview displayCVPIxelBuffer:flippedIoSurfaceBackedPixelBuffer];
                     
                     CVPixelBufferRelease(flippedIoSurfaceBackedPixelBuffer);
                     CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
@@ -637,7 +684,7 @@
                 dispatch_async(dispatch_get_main_queue(), ^{
                     
                     if(self.enablePreviewButton.state == NSOnState)
-                        [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBufferDepth];
+                        [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBufferColor];
                     
                     CVPixelBufferRelease(ioSurfaceBackedPixelBufferColor);
                     CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
@@ -673,20 +720,17 @@
         GLsizei width = (GLsizei) CVPixelBufferGetWidth(colorPixelBuffer);
         GLsizei height = (GLsizei) CVPixelBufferGetHeight(colorPixelBuffer);
         
-        // Final MSAA FBO resolve target
-        glGenFramebuffers(1, &fbo);
-        
-        // MSAA Resolve buffers
+        // MSAA Render
         glGenFramebuffers(1, &msaaFBO);
         glBindFramebuffer(GL_FRAMEBUFFER, msaaFBO);
         
-        // depth storage
+        // MSAA depth storage
         glGenRenderbuffers(1, &msaaFBODepthAttachment);
         glBindRenderbuffer(GL_RENDERBUFFER_EXT, msaaFBODepthAttachment);
         glRenderbufferStorageMultisample(GL_RENDERBUFFER, self.antialiasFactor, GL_DEPTH_COMPONENT, width, height);
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
         
-        // color MSAA storage
+        // MSAA color  storage
         glGenRenderbuffers(1, &msaaFBOColorAttachment);
         glBindRenderbuffer(GL_RENDERBUFFER, msaaFBOColorAttachment);
         glRenderbufferStorageMultisample(GL_RENDERBUFFER, self.antialiasFactor, GL_RGBA, width, height);
@@ -699,9 +743,35 @@
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if(status != GL_FRAMEBUFFER_COMPLETE)
         {
-            NSLog(@"could not create FBO - bailing");
+            NSLog(@"could not create MSAA FBO - bailing");
         }
 
+        // MSAA Resolve buffers
+        glGenFramebuffers(1, &blitFBO);
+        glBindFramebuffer(GL_FRAMEBUFFER, blitFBO);
+        
+        // MSAA depth storage
+        glGenTextures(1, &blitFBODepthAttachment);
+        glBindTexture(GL_TEXTURE_RECTANGLE_EXT, blitFBODepthAttachment);
+        glTexImage2D(GL_TEXTURE_RECTANGLE_EXT, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+
+        glGenTextures(1, &blitFBOColorAttachment);
+        glBindTexture(GL_TEXTURE_RECTANGLE_EXT, blitFBOColorAttachment);
+        glTexImage2D(GL_TEXTURE_RECTANGLE_EXT, 0, GL_RGBA, width, height, 0, GL_BGRA , GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+        
+        // attach our MSAA render storage and depth storage  to our msaaFrameBuffer
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_EXT, blitFBOColorAttachment, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_RECTANGLE_EXT, blitFBODepthAttachment, 0);
+        
+        glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if(status != GL_FRAMEBUFFER_COMPLETE)
+        {
+            NSLog(@"could not create blit FBO - bailing");
+        }
+        
+        // final FBO target for IOSurface
+        glGenFramebuffers(1, &fbo);
+        
         createdGLResources = YES;
     }
     
@@ -728,42 +798,35 @@
     
     // attach texture to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_EXT, fboColorAttachment, 0);
-    
-    // things go according to plan?
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if(status != GL_FRAMEBUFFER_COMPLETE)
     {
         NSLog(@"could not Attach Color to FBO - bailing %i", status);
     }
     
-    // Depth Storage
-    // IOSurface doesnt appear to be able to bind to a depth texture
-    // So we make a depth texture and then in our render pass,
-    // Copy a real depth texture to our IOSurface backed texture via glCopyImageSubData
-
-    if(fboDepthAttachment)
-        glDeleteTextures(1, &fboDepthAttachment);
-
-    glGenTextures(1, &fboDepthAttachment);
-    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachment);
-    CGLTexImageIOSurface2D(self.context.CGLContextObj,
-                           GL_TEXTURE_RECTANGLE_EXT,
-                           GL_RGBA,
-                           (GLsizei) CVPixelBufferGetWidth(depthPixelBuffer),
-                           (GLsizei) CVPixelBufferGetHeight(depthPixelBuffer),
-                           GL_BGRA,
-                           GL_UNSIGNED_INT_8_8_8_8_REV,
-                           CVPixelBufferGetIOSurface(depthPixelBuffer),
-                           0);
-
-    
-    // attach texture to framebuffer
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE_EXT, fboColorAttachment, 0);
-    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if(status != GL_FRAMEBUFFER_COMPLETE)
-    {
-        NSLog(@"could not Attach Depth to FBO - bailing %i", status);
-    }
+//    // Depth Storage - since IOSurface does not support
+//    if(fboDepthAttachment)
+//        glDeleteTextures(1, &fboDepthAttachment);
+//
+//    glGenTextures(1, &fboDepthAttachment);
+//    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachment);
+//    CGLTexImageIOSurface2D(self.context.CGLContextObj,
+//                           GL_TEXTURE_RECTANGLE_EXT,
+//                           GL_RGBA,
+//                           (GLsizei) CVPixelBufferGetWidth(depthPixelBuffer),
+//                           (GLsizei) CVPixelBufferGetHeight(depthPixelBuffer),
+//                           GL_BGRA,
+//                           GL_UNSIGNED_INT_8_8_8_8_REV,
+//                           CVPixelBufferGetIOSurface(depthPixelBuffer),
+//                           0);
+//    
+//    // attach texture to framebuffer
+//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachment, 0);
+//    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+//    if(status != GL_FRAMEBUFFER_COMPLETE)
+//    {
+//        NSLog(@"could not Attach Color 2 to FBO - bailing %i", status);
+//    }
    
 }
 

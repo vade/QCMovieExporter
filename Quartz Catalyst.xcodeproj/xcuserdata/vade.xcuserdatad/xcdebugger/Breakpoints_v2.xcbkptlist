@@ -290,11 +290,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "QuartzCatalyst/Document.m"
-            timestampString = "506813698.422734"
+            timestampString = "506876793.051585"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "304"
-            endingLineNumber = "304"
+            startingLineNumber = "323"
+            endingLineNumber = "323"
             landmarkName = "-chooseRenderDestination:"
             landmarkType = "7">
          </BreakpointContent>
