@@ -18,17 +18,37 @@
 
 @interface Document ()
 {
+    // Due to lack of Multisample texture samplers
+    // and due to the lack of IOSurface supporting
+    // Depth Component texture backing
+    // We have to resort to:
+    // 1) Rendering QC into a multisample storage FBO
+    // 2) Blitting said FBO to single sample textures for MSAA resolve
+    // 3) Rendering those textures through a shader pass to get linearized depth
+    // to our IOSurface
+    
+    // Maybe its better to blit to depth and do PBO readback and forget IOSurface
+    // In totality?
+    
     // Multisampled FBO
     GLuint msaaFBO;
+
+    // Multisample Storage Buffers
     GLuint msaaFBODepthAttachment;
     GLuint msaaFBOColorAttachment;
     
     // Blit target from MSAA
+    GLuint blitFbo;
+    GLuint blitFboDepthAttachment;
+    GLuint blitFboColorAttachment;
+    
+    // Backed by IOSurfaces
     GLuint fbo;
-    // Backed by IOSurface
     GLuint fboColorAttachment;
     GLuint fboDepthAttachment;
-    GLuint fboDepthAttachmentSurface;
+
+    // Shader converts depth samples to linear color samples
+    GLuint depthToColorShader;
     
     BOOL createdGLResources;
 }
@@ -539,19 +559,7 @@
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
             
             // blit the whole extent from read to draw
-            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-            // blit the whole extent from read to draw
-            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-            
-            // Read from our resolved FBO so we can copy text
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-            glReadBuffer(GL_DEPTH_ATTACHMENT);
-            
-            // copy our valid depth to our IOSurface depth
-            glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachmentSurface);
-            glCopyTexSubImage2D(GL_TEXTURE_RECTANGLE_EXT, 0, 0, 0, 0, 0, width, height);
+            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             
             // GL Syncronize / Readback IOSurface to pixel buffer
             // Note glFlushRenderApple / glFlush should be sufficient as I understand it
@@ -738,23 +746,6 @@
 
     glGenTextures(1, &fboDepthAttachment);
     glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachment);
-    glTexImage2D(GL_TEXTURE_RECTANGLE_EXT, 0, GL_DEPTH_COMPONENT24, (GLsizei) CVPixelBufferGetWidth(colorPixelBuffer), (GLsizei) CVPixelBufferGetHeight(colorPixelBuffer), 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
-
-    
-    // attach texture to framebuffer
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachment, 0);
-    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if(status != GL_FRAMEBUFFER_COMPLETE)
-    {
-        NSLog(@"could not Attach Depth to FBO - bailing %i", status);
-    }
-    
-    if(fboDepthAttachmentSurface)
-        glDeleteTextures(1, &fboDepthAttachmentSurface);
-
-    glGenTextures(1, &fboDepthAttachmentSurface);
-    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachmentSurface);
-    // Back bound texture with IOSurface
     CGLTexImageIOSurface2D(self.context.CGLContextObj,
                            GL_TEXTURE_RECTANGLE_EXT,
                            GL_RGBA,
@@ -764,12 +755,16 @@
                            GL_UNSIGNED_INT_8_8_8_8_REV,
                            CVPixelBufferGetIOSurface(depthPixelBuffer),
                            0);
-    
-    
-    
-//    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, 0);
-//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    
+    // attach texture to framebuffer
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE_EXT, fboColorAttachment, 0);
+    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if(status != GL_FRAMEBUFFER_COMPLETE)
+    {
+        NSLog(@"could not Attach Depth to FBO - bailing %i", status);
+    }
+   
 }
 
 @end
