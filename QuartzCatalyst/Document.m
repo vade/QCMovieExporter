@@ -57,6 +57,7 @@
 @property (readwrite, strong) NSOpenGLContext* context;
 @property (readwrite, strong) QCRenderer* renderer;
 @property (readwrite, strong) QCComposition* composition;
+@property (readwrite, assign) BOOL renderDepth;
 
 // Movie Writing
 @property (readwrite, assign) NSInteger durationH, durationM, durationS, duration;
@@ -109,6 +110,7 @@
         self.videoResolution = NSMakeSize(1920, 1080);
         self.codecString = AVVideoCodecAppleProRes4444;
         self.antialiasFactor = 8;
+        self.renderDepth = NO;
         
         NSOpenGLPixelFormatAttribute attributes[] = {
             NSOpenGLPFAAllowOfflineRenderers,
@@ -804,29 +806,32 @@
         NSLog(@"could not Attach Color to FBO - bailing %i", status);
     }
     
-//    // Depth Storage - since IOSurface does not support
-//    if(fboDepthAttachment)
-//        glDeleteTextures(1, &fboDepthAttachment);
-//
-//    glGenTextures(1, &fboDepthAttachment);
-//    glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachment);
-//    CGLTexImageIOSurface2D(self.context.CGLContextObj,
-//                           GL_TEXTURE_RECTANGLE_EXT,
-//                           GL_RGBA,
-//                           (GLsizei) CVPixelBufferGetWidth(depthPixelBuffer),
-//                           (GLsizei) CVPixelBufferGetHeight(depthPixelBuffer),
-//                           GL_BGRA,
-//                           GL_UNSIGNED_INT_8_8_8_8_REV,
-//                           CVPixelBufferGetIOSurface(depthPixelBuffer),
-//                           0);
-//    
-//    // attach texture to framebuffer
-//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachment, 0);
-//    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-//    if(status != GL_FRAMEBUFFER_COMPLETE)
-//    {
-//        NSLog(@"could not Attach Color 2 to FBO - bailing %i", status);
-//    }
+    if(self.renderDepth)
+    {
+        // Depth Storage - since IOSurface does not support
+        if(fboDepthAttachment)
+            glDeleteTextures(1, &fboDepthAttachment);
+        
+        glGenTextures(1, &fboDepthAttachment);
+        glBindTexture(GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachment);
+        CGLTexImageIOSurface2D(self.context.CGLContextObj,
+                               GL_TEXTURE_RECTANGLE_EXT,
+                               GL_RGBA,
+                               (GLsizei) CVPixelBufferGetWidth(depthPixelBuffer),
+                               (GLsizei) CVPixelBufferGetHeight(depthPixelBuffer),
+                               GL_BGRA,
+                               GL_UNSIGNED_INT_8_8_8_8_REV,
+                               CVPixelBufferGetIOSurface(depthPixelBuffer),
+                               0);
+        
+        // attach texture to framebuffer
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE_EXT, fboDepthAttachment, 0);
+        status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if(status != GL_FRAMEBUFFER_COMPLETE)
+        {
+            NSLog(@"could not Attach Color 2 to FBO - bailing %i", status);
+        }
+    }
    
 }
 
