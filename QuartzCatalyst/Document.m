@@ -87,6 +87,7 @@
 @property (readwrite, strong) NSNumber* jpegQuality;
 
 @property (readwrite, strong) IBOutlet NSSlider* h264QualitySlider;
+@property (readwrite, strong) NSNumber* h264Quality;
 @property (readwrite, strong) IBOutlet NSTextField* h264Bitrate;
 
 
@@ -112,13 +113,18 @@
         self.antialiasFactor = 8;
         self.renderDepth = NO;
         
-        NSOpenGLPixelFormatAttribute attributes[] = {
+        self.jpegQuality = @(0.8);
+        self.h264Quality = @(0.8);
+        
+        const NSOpenGLPixelFormatAttribute attributes[] = {
+            NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersionLegacy,
             NSOpenGLPFAAllowOfflineRenderers,
             NSOpenGLPFAAccelerated,
             NSOpenGLPFAColorSize, 32,
             NSOpenGLPFADepthSize, 24,
+            NSOpenGLPFAAcceleratedCompute,
             NSOpenGLPFANoRecovery,
-            NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersionLegacy
+            (NSOpenGLPixelFormatAttribute)0,
         };
 
         NSOpenGLPixelFormat* pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attributes];
@@ -130,6 +136,14 @@
             {
                 NSLog(@"loaded context");
             }
+            else
+            {
+                return nil;
+            }
+        }
+        else
+        {
+            NSLog(@"Unable to init GL Pixel Format - falling back");
         }
 		
         // Default duration (30 seconds)
@@ -308,7 +322,7 @@
         NSSavePanel* savePanel = [NSSavePanel savePanel];
         
         savePanel.allowedFileTypes = @[@"mov"];
-        
+        savePanel.nameFieldStringValue = [[self.displayName stringByDeletingPathExtension] stringByAppendingPathExtension:@"mov"];
         [savePanel beginSheetModalForWindow:self.windowControllers[0].window completionHandler:^(NSInteger result) {
             
             if(result == NSFileHandlingPanelOKButton)
@@ -445,8 +459,8 @@
         NSDictionary* pixelBufferAttributes = @{ (NSString*) kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
                                                  (NSString*) kCVPixelBufferWidthKey : @(self.videoResolution.width),
                                                  (NSString*) kCVPixelBufferHeightKey : @(self.videoResolution.height),
-                                                 (NSString*) kCVPixelBufferIOSurfacePropertiesKey : @{ },
                                                  (NSString*) kCVPixelBufferOpenGLCompatibilityKey : @(YES),
+                                                 (NSString*) kCVPixelBufferIOSurfacePropertiesKey : @{ },
                                                  (NSString*) kCVPixelBufferIOSurfaceOpenGLTextureCompatibilityKey : @(YES),
                                                  (NSString*) kCVPixelBufferIOSurfaceOpenGLFBOCompatibilityKey : @(YES),
                                                  };
@@ -480,53 +494,56 @@
     dispatch_semaphore_t finishedSignal = dispatch_semaphore_create(0);
     dispatch_queue_t videoRenderQueue = dispatch_queue_create("videoRenderQueue", DISPATCH_QUEUE_SERIAL);
 
+    __weak typeof(self) weakSelf = self;
     [self.assetWriterVideoInput requestMediaDataWhenReadyOnQueue:videoRenderQueue usingBlock:^{
-       
+
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+
         // Are we above our duration, or do we bail nicely?
-        if( CMTIME_COMPARE_INLINE(currentTime, >=,  duration) || self.shouldCanel)
+        if( CMTIME_COMPARE_INLINE(currentTime, >=,  duration) || strongSelf.shouldCanel)
         {
-            [self.assetWriterVideoInput markAsFinished];
+            [strongSelf.assetWriterVideoInput markAsFinished];
             
-            self.shouldCanel = NO;
+            strongSelf.shouldCanel = NO;
 
             dispatch_semaphore_signal(finishedSignal);
         }
-        else if (self.assetWriter.status == AVAssetWriterStatusCancelled || self.assetWriter.status == AVAssetWriterStatusFailed)
+        else if (strongSelf.assetWriter.status == AVAssetWriterStatusCancelled || strongSelf.assetWriter.status == AVAssetWriterStatusFailed)
         {
-            [self.assetWriterVideoInput markAsFinished];
+            [strongSelf.assetWriterVideoInput markAsFinished];
             
             dispatch_semaphore_signal(finishedSignal);
         }
-        else if (self.assetWriter.status == AVAssetWriterStatusWriting)
+        else if (strongSelf.assetWriter.status == AVAssetWriterStatusWriting)
         {
             // assign context
-            [self.context makeCurrentContext];
+            [strongSelf.context makeCurrentContext];
         
             // create color texture attachment from IOSurface backed CVPixelBuffer
             CVPixelBufferRef ioSurfaceBackedPixelBufferColor;
-            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, self.assetWriterPixelBufferAdaptor.pixelBufferPool, &ioSurfaceBackedPixelBufferColor);
+            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, strongSelf.assetWriterPixelBufferAdaptor.pixelBufferPool, &ioSurfaceBackedPixelBufferColor);
 
             //create depth texture attachment from IOSurface backed CVPixelBuffer
             CVPixelBufferRef ioSurfaceBackedPixelBufferDepth;
-            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, self.assetWriterPixelBufferAdaptor.pixelBufferPool, &ioSurfaceBackedPixelBufferDepth);
+            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, strongSelf.assetWriterPixelBufferAdaptor.pixelBufferPool, &ioSurfaceBackedPixelBufferDepth);
 
             GLsizei width = (GLsizei) CVPixelBufferGetWidth(ioSurfaceBackedPixelBufferColor);
             GLsizei height = (GLsizei) CVPixelBufferGetHeight(ioSurfaceBackedPixelBufferColor);
 
             // Need to create Renderer on same thread we use it on, (ugh)
-            if(self.renderer == nil)
+            if(strongSelf.renderer == nil)
             {
                 CGColorSpaceRef cspace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
                 
-                self.renderer = [[QCRenderer alloc] initWithCGLContext:self.context.CGLContextObj
-                                                           pixelFormat:self.context.pixelFormat.CGLPixelFormatObj
-                                                            colorSpace:cspace
-                                                           composition:self.composition];
+                strongSelf.renderer = [[QCRenderer alloc] initWithCGLContext:strongSelf.context.CGLContextObj
+                                                                 pixelFormat:strongSelf.context.pixelFormat.CGLPixelFormatObj
+                                                                  colorSpace:cspace
+                                                                 composition:strongSelf.composition];
                 CGColorSpaceRelease(cspace);
             }
             
             // create GL resources if we need it
-            [self createFBOWithCVPixelBufferColorAttachment:ioSurfaceBackedPixelBufferColor depthAttachment:ioSurfaceBackedPixelBufferDepth];
+            [strongSelf createFBOWithCVPixelBufferColorAttachment:ioSurfaceBackedPixelBufferColor depthAttachment:ioSurfaceBackedPixelBufferDepth];
             
 #pragma mark - Render MSAA Pass
             
@@ -624,7 +641,7 @@
             {
                 // Create a new destination pixel buffer from our pool,
                 CVPixelBufferRef flippedIoSurfaceBackedPixelBuffer;
-                CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, self.assetWriterPixelBufferAdaptor.pixelBufferPool, &flippedIoSurfaceBackedPixelBuffer);
+                CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, strongSelf.assetWriterPixelBufferAdaptor.pixelBufferPool, &flippedIoSurfaceBackedPixelBuffer);
                 
                 // Lock base addresses for reading / writing
                 CVPixelBufferLockBaseAddress(ioSurfaceBackedPixelBufferColor, kCVPixelBufferLock_ReadOnly);
@@ -651,7 +668,7 @@
                 CVPixelBufferRelease(ioSurfaceBackedPixelBufferColor);
 
                 // Write pixel buffer to movie
-                if(![self.assetWriterPixelBufferAdaptor appendPixelBuffer:flippedIoSurfaceBackedPixelBuffer withPresentationTime:currentTime])
+                if(![strongSelf.assetWriterPixelBufferAdaptor appendPixelBuffer:flippedIoSurfaceBackedPixelBuffer withPresentationTime:currentTime])
                     NSLog(@"Unable to write frame at time: %@", CMTimeCopyDescription(kCFAllocatorDefault, currentTime));
                 
                 // Update UI on main queue
@@ -659,13 +676,13 @@
                 CVPixelBufferRetain(ioSurfaceBackedPixelBufferDepth);
                 dispatch_async(dispatch_get_main_queue(), ^{
                     
-                    if(self.enablePreviewButton.state == NSOnState)
-                        [self.preview displayCVPIxelBuffer:flippedIoSurfaceBackedPixelBuffer];
+                    if(strongSelf.enablePreviewButton.state == NSOnState)
+                        [strongSelf.preview displayCVPIxelBuffer:flippedIoSurfaceBackedPixelBuffer];
                     
                     CVPixelBufferRelease(flippedIoSurfaceBackedPixelBuffer);
                     CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
 
-                    self.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
+                    strongSelf.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
                 });
 
                 // Cleanup
@@ -676,7 +693,7 @@
             else
             {
                 // Write pixel buffer to movie
-                if(![self.assetWriterPixelBufferAdaptor appendPixelBuffer:ioSurfaceBackedPixelBufferColor withPresentationTime:currentTime])
+                if(![strongSelf.assetWriterPixelBufferAdaptor appendPixelBuffer:ioSurfaceBackedPixelBufferColor withPresentationTime:currentTime])
                     NSLog(@"Unable to write frame at time: %@", CMTimeCopyDescription(kCFAllocatorDefault, currentTime));
                 
                 // Update UI on main queue
@@ -685,13 +702,13 @@
                 CVPixelBufferRetain(ioSurfaceBackedPixelBufferDepth);
                 dispatch_async(dispatch_get_main_queue(), ^{
                     
-                    if(self.enablePreviewButton.state == NSOnState)
-                        [self.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBufferColor];
+                    if(strongSelf.enablePreviewButton.state == NSOnState)
+                        [strongSelf.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBufferColor];
                     
                     CVPixelBufferRelease(ioSurfaceBackedPixelBufferColor);
                     CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
                     
-                    self.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
+                    strongSelf.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
                 });
 
                 // Cleanup
@@ -701,7 +718,7 @@
             
             
             // increment time
-            currentTime = CMTimeAdd(currentTime, self.frameInterval);
+            currentTime = CMTimeAdd(currentTime, strongSelf.frameInterval);
             frameNumber++;
         }
     }];
