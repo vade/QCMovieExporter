@@ -242,6 +242,19 @@
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="rWP-ry-INM">
+                        <rect key="frame" x="418" y="158" width="107" height="18"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="102" id="RPC-nt-WMM"/>
+                        </constraints>
+                        <buttonCell key="cell" type="check" title="Render Depth" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="tbI-TF-SW9">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                        <connections>
+                            <binding destination="-2" name="value" keyPath="self.renderDepth" id="09l-2z-EAz"/>
+                        </connections>
+                    </button>
                 </subviews>
                 <constraints>
                     <constraint firstItem="1If-9d-D7v" firstAttribute="top" secondItem="tRi-NG-Nx5" secondAttribute="bottom" constant="17" id="4Mm-OK-aP6"/>
@@ -249,6 +262,7 @@
                     <constraint firstItem="Qta-dD-cV4" firstAttribute="top" secondItem="1If-9d-D7v" secondAttribute="bottom" constant="8" id="5jW-9y-Jgi"/>
                     <constraint firstItem="yf1-Qm-7pN" firstAttribute="centerY" secondItem="peK-MJ-rVq" secondAttribute="centerY" id="AHs-RY-MqD"/>
                     <constraint firstItem="hIn-Rf-xhF" firstAttribute="top" secondItem="1If-9d-D7v" secondAttribute="bottom" constant="9" id="BFf-bX-sNW"/>
+                    <constraint firstItem="rWP-ry-INM" firstAttribute="top" secondItem="yf1-Qm-7pN" secondAttribute="bottom" constant="12" id="BUV-eL-bPy"/>
                     <constraint firstItem="GL4-TP-p3o" firstAttribute="leading" secondItem="gIp-Ho-8D9" secondAttribute="leading" constant="20" id="CSx-Ud-KcQ"/>
                     <constraint firstItem="sp6-5C-Zdh" firstAttribute="top" secondItem="NQy-aP-Aju" secondAttribute="bottom" constant="8" id="CvC-cz-2gE"/>
                     <constraint firstItem="qsw-Hx-NeS" firstAttribute="baseline" secondItem="m8Y-Uv-xKx" secondAttribute="baseline" id="DHT-ot-T28"/>
@@ -266,6 +280,7 @@
                     <constraint firstItem="TcJ-b6-bNw" firstAttribute="baseline" secondItem="XuT-SF-ITE" secondAttribute="baseline" constant="-2" id="SR7-7a-7sG"/>
                     <constraint firstItem="sp6-5C-Zdh" firstAttribute="leading" secondItem="YB6-NZ-nqG" secondAttribute="trailing" constant="40" id="Tev-QJ-Hmi"/>
                     <constraint firstItem="hIn-Rf-xhF" firstAttribute="baseline" secondItem="XuT-SF-ITE" secondAttribute="baseline" constant="-2" id="U7E-ay-7Rh"/>
+                    <constraint firstItem="rWP-ry-INM" firstAttribute="leading" secondItem="qsw-Hx-NeS" secondAttribute="leading" id="UaV-Sp-KOX"/>
                     <constraint firstItem="abc-5s-xWA" firstAttribute="leading" secondItem="gIp-Ho-8D9" secondAttribute="leading" constant="20" id="VRO-ul-hhB"/>
                     <constraint firstItem="Ryx-TA-RM8" firstAttribute="top" secondItem="1If-9d-D7v" secondAttribute="bottom" constant="8" id="VTG-SK-XZO"/>
                     <constraint firstItem="Ryx-TA-RM8" firstAttribute="baseline" secondItem="XuT-SF-ITE" secondAttribute="baseline" id="WSo-W9-C6y"/>

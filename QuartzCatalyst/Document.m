@@ -64,6 +64,9 @@
 @property (readwrite, strong) AVAssetWriter* assetWriter;
 @property (readwrite, strong) AVAssetWriterInput* assetWriterVideoInput;
 @property (readwrite, strong) AVAssetWriterInputPixelBufferAdaptor* assetWriterPixelBufferAdaptor;
+@property (readwrite, strong) AVAssetWriter* assetWriterDepth;
+@property (readwrite, strong) AVAssetWriterInput* assetWriterVideoInputDepth;
+@property (readwrite, strong) AVAssetWriterInputPixelBufferAdaptor* assetWriterPixelBufferAdaptorDepth;
 @property (atomic, readwrite, assign) BOOL shouldCanel;
 
 @property (readwrite, assign) CMTime frameInterval;
@@ -328,7 +331,17 @@
             if(result == NSFileHandlingPanelOKButton)
             {
                 self.assetWriter = [[AVAssetWriter alloc] initWithURL:savePanel.URL fileType:AVFileTypeQuickTimeMovie error:nil];
-                
+
+                if(self.renderDepth)
+                {
+                    // Modify URL to contain depth
+                    NSString* depthURLPath = [savePanel.URL path];
+                    depthURLPath = [depthURLPath stringByDeletingPathExtension];
+                    depthURLPath = [depthURLPath stringByAppendingString:@"_depth"];
+                    depthURLPath = [depthURLPath stringByAppendingPathExtension:@"mov"];
+                    self.assetWriterDepth = [[AVAssetWriter alloc] initWithURL:[NSURL fileURLWithPath:depthURLPath] fileType:AVFileTypeQuickTimeMovie error:nil];
+
+                }
                 self.codecMenu.enabled = YES;
                 self.antialiasMenu.enabled = YES;
                 self.resolutionMenu.enabled = YES;
@@ -452,9 +465,6 @@
             NSDictionary* h264Settings =  @{AVVideoAverageBitRateKey : self.h264Bitrate};
             [(NSMutableDictionary*)videoOutputSettings addEntriesFromDictionary:@{AVVideoCompressionPropertiesKey : h264Settings}];
         }
-
-        self.assetWriterVideoInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo
-                                                                    outputSettings:videoOutputSettings];
         
         NSDictionary* pixelBufferAttributes = @{ (NSString*) kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
                                                  (NSString*) kCVPixelBufferWidthKey : @(self.videoResolution.width),
@@ -464,6 +474,8 @@
                                                  (NSString*) kCVPixelBufferIOSurfaceOpenGLTextureCompatibilityKey : @(YES),
                                                  (NSString*) kCVPixelBufferIOSurfaceOpenGLFBOCompatibilityKey : @(YES),
                                                  };
+        self.assetWriterVideoInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo
+                                                                    outputSettings:videoOutputSettings];
         
         self.assetWriterPixelBufferAdaptor = [[AVAssetWriterInputPixelBufferAdaptor alloc] initWithAssetWriterInput:self.assetWriterVideoInput sourcePixelBufferAttributes:pixelBufferAttributes];
         
@@ -472,12 +484,32 @@
             [self.assetWriter addInput:self.assetWriterVideoInput];
         }
         
+        if(self.renderDepth)
+        {
+            self.assetWriterVideoInputDepth = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo
+                                                                             outputSettings:videoOutputSettings];
+            
+            self.assetWriterPixelBufferAdaptorDepth = [[AVAssetWriterInputPixelBufferAdaptor alloc] initWithAssetWriterInput:self.assetWriterVideoInputDepth sourcePixelBufferAttributes:pixelBufferAttributes];
+            
+            if([self.assetWriterDepth canAddInput:self.assetWriterVideoInputDepth])
+            {
+                [self.assetWriterDepth addInput:self.assetWriterVideoInputDepth];
+            }
+        }
+        
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
 			
             // Syncronous activity - effectively disables AppNap / re-enables AppNap on completion
 			[NSProcessInfo.processInfo performActivityWithOptions:NSActivityUserInitiated reason:@"Render" usingBlock:^{
 				[self.assetWriter startWriting];
 				[self.assetWriter startSessionAtSourceTime:kCMTimeZero];
+                
+                if(self.renderDepth)
+                {
+                    [self.assetWriterDepth startWriting];
+                    [self.assetWriterDepth startSessionAtSourceTime:kCMTimeZero];
+                }
+                
 				[self renderAndWrite];
 			}];
 		});
@@ -495,6 +527,9 @@
     dispatch_queue_t videoRenderQueue = dispatch_queue_create("videoRenderQueue", DISPATCH_QUEUE_SERIAL);
 
     __weak typeof(self) weakSelf = self;
+    
+    // For now, we use our Color asset writer to also enqueue our depth.
+    // Unclear the best way to handle this
     [self.assetWriterVideoInput requestMediaDataWhenReadyOnQueue:videoRenderQueue usingBlock:^{
 
         __strong typeof(weakSelf) strongSelf = weakSelf;
@@ -504,6 +539,9 @@
         {
             [strongSelf.assetWriterVideoInput markAsFinished];
             
+            if(strongSelf.renderDepth)
+                [strongSelf.assetWriterVideoInputDepth markAsFinished];
+
             strongSelf.shouldCanel = NO;
 
             dispatch_semaphore_signal(finishedSignal);
@@ -512,6 +550,9 @@
         {
             [strongSelf.assetWriterVideoInput markAsFinished];
             
+            if(strongSelf.renderDepth)
+                [strongSelf.assetWriterVideoInputDepth markAsFinished];
+
             dispatch_semaphore_signal(finishedSignal);
         }
         else if (strongSelf.assetWriter.status == AVAssetWriterStatusWriting)
@@ -520,13 +561,16 @@
             [strongSelf.context makeCurrentContext];
         
             // create color texture attachment from IOSurface backed CVPixelBuffer
-            CVPixelBufferRef ioSurfaceBackedPixelBufferColor;
+            CVPixelBufferRef ioSurfaceBackedPixelBufferColor = NULL;
             CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, strongSelf.assetWriterPixelBufferAdaptor.pixelBufferPool, &ioSurfaceBackedPixelBufferColor);
 
             //create depth texture attachment from IOSurface backed CVPixelBuffer
-            CVPixelBufferRef ioSurfaceBackedPixelBufferDepth;
-            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, strongSelf.assetWriterPixelBufferAdaptor.pixelBufferPool, &ioSurfaceBackedPixelBufferDepth);
-
+            CVPixelBufferRef ioSurfaceBackedPixelBufferDepth = NULL;
+            if(strongSelf.renderDepth)
+            {
+                CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, strongSelf.assetWriterPixelBufferAdaptorDepth.pixelBufferPool, &ioSurfaceBackedPixelBufferDepth);
+            }
+            
             GLsizei width = (GLsizei) CVPixelBufferGetWidth(ioSurfaceBackedPixelBufferColor);
             GLsizei height = (GLsizei) CVPixelBufferGetHeight(ioSurfaceBackedPixelBufferColor);
 
@@ -600,9 +644,20 @@
             glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
             
             // Render Color to color, depth to color 1
+
+            // TODO: Bind Shader to normalize depth and blit to MRT Color 1
+            
+            if(strongSelf.renderDepth)
+            {
+                glEnable(GL_TEXTURE_RECTANGLE_EXT);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_RECTANGLE_EXT, blitFBODepthAttachment);
+            }
             
             glEnable(GL_TEXTURE_RECTANGLE_EXT);
+            glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_RECTANGLE_EXT, blitFBOColorAttachment);
+
             glColor4f(1.0, 1.0, 1.0, 1.0);
             
             // move to VA for rendering
@@ -628,94 +683,52 @@
             glVertexPointer(2, GL_FLOAT, 0, verts );
             glDrawArrays( GL_TRIANGLE_FAN, 0, 4 );	// TODO: GL_QUADS or GL_TRIANGLE_FAN?
 
+            glPopAttrib();
             
             // GL Syncronize / Readback IOSurface to pixel buffer
             // Note glFlushRenderApple / glFlush should be sufficient as I understand it
             // but we appear to get some flicker with them.
             glFlushRenderAPPLE();
             
-            glPopAttrib();
             
-            // Use VImage to flip vertically if we need to
-            if(CVImageBufferIsFlipped(ioSurfaceBackedPixelBufferColor))
+            // Write color
+            CVPixelBufferRef flippedIoSurfaceBackedPixelBuffer = [strongSelf createFlippedPixelBufferIfNecessary:ioSurfaceBackedPixelBufferColor fromPool:strongSelf.assetWriterPixelBufferAdaptor.pixelBufferPool];
+            
+            // Write pixel buffer to movie
+            if(![strongSelf.assetWriterPixelBufferAdaptor appendPixelBuffer:flippedIoSurfaceBackedPixelBuffer withPresentationTime:currentTime])
+                NSLog(@"Unable to write color frame at time: %@", CMTimeCopyDescription(kCFAllocatorDefault, currentTime));
+            
+
+            CVPixelBufferRef flippedIoSurfaceBackedPixelBufferDepth = NULL;
+            
+            if(strongSelf.renderDepth)
             {
-                // Create a new destination pixel buffer from our pool,
-                CVPixelBufferRef flippedIoSurfaceBackedPixelBuffer;
-                CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, strongSelf.assetWriterPixelBufferAdaptor.pixelBufferPool, &flippedIoSurfaceBackedPixelBuffer);
-                
-                // Lock base addresses for reading / writing
-                CVPixelBufferLockBaseAddress(ioSurfaceBackedPixelBufferColor, kCVPixelBufferLock_ReadOnly);
-                CVPixelBufferLockBaseAddress(flippedIoSurfaceBackedPixelBuffer, 0);
-                
-                // make vImage buffers
-                vImage_Buffer source;
-                source.data = CVPixelBufferGetBaseAddress(ioSurfaceBackedPixelBufferColor);
-                source.rowBytes = CVPixelBufferGetBytesPerRow(ioSurfaceBackedPixelBufferColor);
-                source.width = CVPixelBufferGetWidth(ioSurfaceBackedPixelBufferColor);
-                source.height = CVPixelBufferGetHeight(ioSurfaceBackedPixelBufferColor);
-                
-                vImage_Buffer dest;
-                dest.data = CVPixelBufferGetBaseAddress(flippedIoSurfaceBackedPixelBuffer);
-                dest.rowBytes = CVPixelBufferGetBytesPerRow(flippedIoSurfaceBackedPixelBuffer);
-                dest.width = CVPixelBufferGetWidth(flippedIoSurfaceBackedPixelBuffer);
-                dest.height = CVPixelBufferGetHeight(flippedIoSurfaceBackedPixelBuffer);
-                
-                vImageVerticalReflect_ARGB8888(&source, &dest, kvImageNoFlags);
-                
-                // Clean Up
-                CVPixelBufferUnlockBaseAddress(ioSurfaceBackedPixelBufferColor, kCVPixelBufferLock_ReadOnly);
-                CVPixelBufferUnlockBaseAddress(flippedIoSurfaceBackedPixelBuffer, 0);
-                CVPixelBufferRelease(ioSurfaceBackedPixelBufferColor);
+                flippedIoSurfaceBackedPixelBufferDepth = [strongSelf createFlippedPixelBufferIfNecessary:ioSurfaceBackedPixelBufferDepth fromPool:strongSelf.assetWriterPixelBufferAdaptorDepth.pixelBufferPool];
 
-                // Write pixel buffer to movie
-                if(![strongSelf.assetWriterPixelBufferAdaptor appendPixelBuffer:flippedIoSurfaceBackedPixelBuffer withPresentationTime:currentTime])
-                    NSLog(@"Unable to write frame at time: %@", CMTimeCopyDescription(kCFAllocatorDefault, currentTime));
-                
-                // Update UI on main queue
-                CVPixelBufferRetain(flippedIoSurfaceBackedPixelBuffer);
-                CVPixelBufferRetain(ioSurfaceBackedPixelBufferDepth);
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    
-                    if(strongSelf.enablePreviewButton.state == NSOnState)
-                        [strongSelf.preview displayCVPIxelBuffer:flippedIoSurfaceBackedPixelBuffer];
-                    
-                    CVPixelBufferRelease(flippedIoSurfaceBackedPixelBuffer);
-                    CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
+                if(![strongSelf.assetWriterPixelBufferAdaptorDepth appendPixelBuffer:flippedIoSurfaceBackedPixelBufferDepth withPresentationTime:currentTime])
+                    NSLog(@"Unable to write depth frame at time: %@", CMTimeCopyDescription(kCFAllocatorDefault, currentTime));
 
-                    strongSelf.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
-                });
-
-                // Cleanup
-                CVPixelBufferRelease(flippedIoSurfaceBackedPixelBuffer);
-                CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
-                
-            }
-            else
-            {
-                // Write pixel buffer to movie
-                if(![strongSelf.assetWriterPixelBufferAdaptor appendPixelBuffer:ioSurfaceBackedPixelBufferColor withPresentationTime:currentTime])
-                    NSLog(@"Unable to write frame at time: %@", CMTimeCopyDescription(kCFAllocatorDefault, currentTime));
-                
-                // Update UI on main queue
-                // Update UI on main queue
-                CVPixelBufferRetain(ioSurfaceBackedPixelBufferColor);
-                CVPixelBufferRetain(ioSurfaceBackedPixelBufferDepth);
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    
-                    if(strongSelf.enablePreviewButton.state == NSOnState)
-                        [strongSelf.preview displayCVPIxelBuffer:ioSurfaceBackedPixelBufferColor];
-                    
-                    CVPixelBufferRelease(ioSurfaceBackedPixelBufferColor);
-                    CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
-                    
-                    strongSelf.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
-                });
-
-                // Cleanup
-                CVPixelBufferRelease(ioSurfaceBackedPixelBufferColor);
-                CVPixelBufferRelease(ioSurfaceBackedPixelBufferDepth);
             }
             
+            CVPixelBufferRef previewBuffer = (strongSelf.renderDepth && flippedIoSurfaceBackedPixelBufferDepth) ? flippedIoSurfaceBackedPixelBuffer : flippedIoSurfaceBackedPixelBuffer;
+            
+            // Update UI on main queue
+            CVPixelBufferRetain(previewBuffer);
+
+            dispatch_async(dispatch_get_main_queue(), ^{
+                
+                if(strongSelf.enablePreviewButton.state == NSOnState)
+                    [strongSelf.preview displayCVPIxelBuffer:previewBuffer];
+                
+                CVPixelBufferRelease(previewBuffer);
+                
+                strongSelf.renderProgress.doubleValue = CMTimeGetSeconds(currentTime) / CMTimeGetSeconds(duration);
+            });
+            
+            
+            // Clean up
+            
+            CVPixelBufferRelease(flippedIoSurfaceBackedPixelBuffer);
             
             // increment time
             currentTime = CMTimeAdd(currentTime, strongSelf.frameInterval);
@@ -730,12 +743,25 @@
             [[NSWorkspace sharedWorkspace] activateFileViewerSelectingURLs:@[self.assetWriter.outputURL]];
         });
     }];
+    
+    if(self.renderDepth)
+    {
+        [self.assetWriterDepth finishWritingWithCompletionHandler:^{
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [[NSWorkspace sharedWorkspace] activateFileViewerSelectingURLs:@[self.assetWriterDepth.outputURL]];
+            });
+
+        }];
+    }
 }
 
 - (void) createFBOWithCVPixelBufferColorAttachment:(CVPixelBufferRef)colorPixelBuffer depthAttachment:(CVPixelBufferRef)depthPixelBuffer
 {
     if(!createdGLResources)
     {
+        
+        // TODO: Create Shader to normalize depth and blit to MRT Color 1
+
         GLsizei width = (GLsizei) CVPixelBufferGetWidth(colorPixelBuffer);
         GLsizei height = (GLsizei) CVPixelBufferGetHeight(colorPixelBuffer);
         
@@ -849,7 +875,46 @@
             NSLog(@"could not Attach Color 2 to FBO - bailing %i", status);
         }
     }
-   
+}
+
+- (CVPixelBufferRef) createFlippedPixelBufferIfNecessary:(CVPixelBufferRef)input fromPool:(CVPixelBufferPoolRef)pool
+{
+    if(CVImageBufferIsFlipped(input))
+    {
+        // Create a new destination pixel buffer from our pool,
+        CVPixelBufferRef flipped;
+        CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &flipped);
+        
+        // Lock base addresses for reading / writing
+        CVPixelBufferLockBaseAddress(input, kCVPixelBufferLock_ReadOnly);
+        CVPixelBufferLockBaseAddress(flipped, 0);
+        
+        // make vImage buffers
+        vImage_Buffer source;
+        source.data = CVPixelBufferGetBaseAddress(input);
+        source.rowBytes = CVPixelBufferGetBytesPerRow(input);
+        source.width = CVPixelBufferGetWidth(input);
+        source.height = CVPixelBufferGetHeight(input);
+        
+        vImage_Buffer dest;
+        dest.data = CVPixelBufferGetBaseAddress(flipped);
+        dest.rowBytes = CVPixelBufferGetBytesPerRow(flipped);
+        dest.width = CVPixelBufferGetWidth(flipped);
+        dest.height = CVPixelBufferGetHeight(flipped);
+        
+        vImageVerticalReflect_ARGB8888(&source, &dest, kvImageNoFlags);
+        
+        // Clean Up
+        CVPixelBufferUnlockBaseAddress(input, kCVPixelBufferLock_ReadOnly);
+        CVPixelBufferUnlockBaseAddress(flipped, 0);
+
+        // Cleanup our input, we no longer need it
+        CVPixelBufferRelease(input);
+        
+        return flipped;
+    }
+    
+    return input;
 }
 
 @end
