@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1B2E7BC21E415501009F4E35 /* colorAndDepth.frag in Resources */ = {isa = PBXBuildFile; fileRef = 1B2E7BC11E415501009F4E35 /* colorAndDepth.frag */; };
+		1B2E7BC41E41550C009F4E35 /* colorAndDepth.vert in Resources */ = {isa = PBXBuildFile; fileRef = 1B2E7BC31E41550C009F4E35 /* colorAndDepth.vert */; };
+		1B7786241E3EA70200D49311 /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B7786231E3EA70200D49311 /* Quartz.framework */; };
 		1BB8BD0A1E2C797C0021C1B4 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BB8BD091E2C797C0021C1B4 /* AppDelegate.m */; };
 		1BB8BD0D1E2C797C0021C1B4 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BB8BD0C1E2C797C0021C1B4 /* main.m */; };
 		1BB8BD101E2C797C0021C1B4 /* Document.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BB8BD0F1E2C797C0021C1B4 /* Document.m */; };
@@ -20,6 +23,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1B2E7BC11E415501009F4E35 /* colorAndDepth.frag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = colorAndDepth.frag; sourceTree = "<group>"; };
+		1B2E7BC31E41550C009F4E35 /* colorAndDepth.vert */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = colorAndDepth.vert; sourceTree = "<group>"; };
+		1B7786231E3EA70200D49311 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
 		1BB8BD051E2C797C0021C1B4 /* Quartz Catalyst.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Quartz Catalyst.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1BB8BD081E2C797C0021C1B4 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		1BB8BD091E2C797C0021C1B4 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -42,6 +48,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1B7786241E3EA70200D49311 /* Quartz.framework in Frameworks */,
 				1BB8BD251E2C79E20021C1B4 /* OpenGL.framework in Frameworks */,
 				1BB8BD231E2C79DB0021C1B4 /* CoreMedia.framework in Frameworks */,
 				1BB8BD211E2C79D70021C1B4 /* AVFoundation.framework in Frameworks */,
@@ -77,6 +84,8 @@
 				1BB8BD0F1E2C797C0021C1B4 /* Document.m */,
 				1BB8BD271E2D6A5D0021C1B4 /* SampleLayerView.h */,
 				1BB8BD281E2D6A5D0021C1B4 /* SampleLayerView.m */,
+				1B2E7BC11E415501009F4E35 /* colorAndDepth.frag */,
+				1B2E7BC31E41550C009F4E35 /* colorAndDepth.vert */,
 				1BB8BD111E2C797C0021C1B4 /* Document.xib */,
 				1BB8BD141E2C797C0021C1B4 /* Assets.xcassets */,
 				1BB8BD161E2C797C0021C1B4 /* MainMenu.xib */,
@@ -98,6 +107,7 @@
 		1BB8BD1F1E2C79D70021C1B4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				1B7786231E3EA70200D49311 /* Quartz.framework */,
 				1BB8BD241E2C79E20021C1B4 /* OpenGL.framework */,
 				1BB8BD221E2C79DB0021C1B4 /* CoreMedia.framework */,
 				1BB8BD201E2C79D70021C1B4 /* AVFoundation.framework */,
@@ -165,7 +175,9 @@
 			files = (
 				1BB8BD151E2C797C0021C1B4 /* Assets.xcassets in Resources */,
 				1BB8BD131E2C797C0021C1B4 /* Document.xib in Resources */,
+				1B2E7BC41E41550C009F4E35 /* colorAndDepth.vert in Resources */,
 				1BB8BD181E2C797C0021C1B4 /* MainMenu.xib in Resources */,
+				1B2E7BC21E415501009F4E35 /* colorAndDepth.frag in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -299,6 +311,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = QuartzCatalyst/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_BUNDLE_IDENTIFIER = info.v002.QuartzCatalyst;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -311,6 +324,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = QuartzCatalyst/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_BUNDLE_IDENTIFIER = info.v002.QuartzCatalyst;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
