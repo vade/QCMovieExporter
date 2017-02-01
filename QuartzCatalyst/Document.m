@@ -15,6 +15,7 @@
 #import <VideoToolbox/VideoToolbox.h>
 #import <Accelerate/Accelerate.h>
 #import "SampleLayerView.h"
+//#import "Shader.h"
 
 @interface Document ()
 {
@@ -48,7 +49,7 @@
     GLuint fboDepthAttachment;
 
     // Shader converts depth samples to linear color samples
-    GLuint depthToColorShader;
+    GLuint shaderProgram;
     
     BOOL createdGLResources;
 }
@@ -623,7 +624,8 @@
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, blitFBO);
             
             // blit the whole extent from read to draw
-            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT , GL_NEAREST);
+            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT , GL_NEAREST);
+            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_DEPTH_BUFFER_BIT , GL_NEAREST);
 
             // GL Syncronize contents of Blit Target
             glFlushRenderAPPLE();
@@ -646,17 +648,20 @@
             // Render Color to color, depth to color 1
 
             // TODO: Bind Shader to normalize depth and blit to MRT Color 1
+            glUseProgram(shaderProgram);
             
             if(strongSelf.renderDepth)
             {
                 glEnable(GL_TEXTURE_RECTANGLE_EXT);
                 glActiveTexture(GL_TEXTURE1);
                 glBindTexture(GL_TEXTURE_RECTANGLE_EXT, blitFBODepthAttachment);
+                glUniform1i(glGetUniformLocation(shaderProgram, "depth"), 1);
             }
             
             glEnable(GL_TEXTURE_RECTANGLE_EXT);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_RECTANGLE_EXT, blitFBOColorAttachment);
+            glUniform1i(glGetUniformLocation(shaderProgram, "color"), 0);
 
             glColor4f(1.0, 1.0, 1.0, 1.0);
             
@@ -682,6 +687,8 @@
             glEnableClientState(GL_VERTEX_ARRAY);
             glVertexPointer(2, GL_FLOAT, 0, verts );
             glDrawArrays( GL_TRIANGLE_FAN, 0, 4 );	// TODO: GL_QUADS or GL_TRIANGLE_FAN?
+
+            glUseProgram(0);
 
             glPopAttrib();
             
@@ -761,7 +768,10 @@
     {
         
         // TODO: Create Shader to normalize depth and blit to MRT Color 1
-
+//        self.shader = [[Shader alloc] initWithShadersInAppBundle:@"colorAndDepth" forContext:self.context.CGLContextObj];
+        
+        [self loadShader];
+        
         GLsizei width = (GLsizei) CVPixelBufferGetWidth(colorPixelBuffer);
         GLsizei height = (GLsizei) CVPixelBufferGetHeight(colorPixelBuffer);
         
@@ -915,6 +925,163 @@
     }
     
     return input;
+}
+
+- (void)loadShader
+{
+    GLuint vertexShader;
+    GLuint fragmentShader;
+    
+    vertexShader   = [self compileShaderOfType:GL_VERTEX_SHADER   file:[[NSBundle mainBundle] pathForResource:@"colorAndDepth" ofType:@"vert"]];
+    fragmentShader = [self compileShaderOfType:GL_FRAGMENT_SHADER file:[[NSBundle mainBundle] pathForResource:@"colorAndDepth" ofType:@"frag"]];
+    
+    if (0 != vertexShader && 0 != fragmentShader)
+    {
+        shaderProgram = glCreateProgram();
+//        GetError();
+        
+        glAttachShader(shaderProgram, vertexShader  );
+//        GetError();
+        glAttachShader(shaderProgram, fragmentShader);
+//        GetError();
+        
+        [self linkProgram:shaderProgram];
+        
+//        positionUniform = glGetUniformLocation(shaderProgram, "p");
+//        GetError();
+//        if (positionUniform < 0)
+//        {
+//            [NSException raise:kFailedToInitialiseGLException format:@"Shader did not contain the 'p' uniform."];
+//        }
+//        colourAttribute = glGetAttribLocation(shaderProgram, "colour");
+//        GetError();
+//        if (colourAttribute < 0)
+//        {
+//            [NSException raise:kFailedToInitialiseGLException format:@"Shader did not contain the 'colour' attribute."];
+//        }
+//        positionAttribute = glGetAttribLocation(shaderProgram, "position");
+//        GetError();
+//        if (positionAttribute < 0)
+//        {
+//            [NSException raise:kFailedToInitialiseGLException format:@"Shader did not contain the 'position' attribute."];
+//        }
+        
+        glDeleteShader(vertexShader);
+//        GetError();
+        glDeleteShader(fragmentShader);
+//        GetError();
+    }
+//    else
+//    {
+//        [NSException raise:kFailedToInitialiseGLException format:@"Shader compilation failed."];
+//    }
+}
+
+- (GLuint)compileShaderOfType:(GLenum)type file:(NSString *)file
+{
+    GLuint shader;
+    const GLchar *source = (GLchar *)[[NSString stringWithContentsOfFile:file encoding:NSASCIIStringEncoding error:nil] cStringUsingEncoding:NSASCIIStringEncoding];
+    
+    if (nil == source)
+    {
+        NSLog(@"No Source");
+//        [NSException raise:kFailedToInitialiseGLException format:@"Failed to read shader file %@", file];
+    }
+    
+    shader = glCreateShader(type);
+//    GetError();
+    glShaderSource(shader, 1, &source, NULL);
+//    GetError();
+    glCompileShader(shader);
+//    GetError();
+    
+#if defined(DEBUG)
+    GLint logLength;
+    
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+//    GetError();
+    if (logLength > 0)
+    {
+        GLchar *log = malloc((size_t)logLength);
+        glGetShaderInfoLog(shader, logLength, &logLength, log);
+//        GetError();
+        NSLog(@"Shader compilation failed with error:\n%s", log);
+        free(log);
+    }
+#endif
+    
+    GLint status;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+//    GetError();
+    if (0 == status)
+    {
+        glDeleteShader(shader);
+//        GetError();
+        NSLog(@"Failed to compile shader");
+
+//        [NSException raise:kFailedToInitialiseGLException format:@"Shader compilation failed for file %@", file];
+    }
+    
+    return shader;
+}
+
+- (void)linkProgram:(GLuint)program
+{
+    glLinkProgram(program);
+//    GetError();
+    
+#if defined(DEBUG)
+    GLint logLength;
+    
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+//    GetError();
+    if (logLength > 0)
+    {
+        GLchar *log = malloc((size_t)logLength);
+        glGetProgramInfoLog(program, logLength, &logLength, log);
+//        GetError();
+        NSLog(@"Shader program linking failed with error:\n%s", log);
+        free(log);
+    }
+#endif
+    
+    GLint status;
+    glGetProgramiv(program, GL_LINK_STATUS, &status);
+//    GetError();
+    if (0 == status)
+    {
+        NSLog(@"Failed to link shader program");
+
+//        [NSException raise:kFailedToInitialiseGLException format:@"Failed to link shader program"];
+    }
+}
+
+- (void)validateProgram:(GLuint)program
+{
+    GLint logLength;
+    
+    glValidateProgram(program);
+//    GetError();
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+//    GetError();
+    if (logLength > 0)
+    {
+        GLchar *log = malloc((size_t)logLength);
+        glGetProgramInfoLog(program, logLength, &logLength, log);
+//        GetError();
+        NSLog(@"Program validation produced errors:\n%s", log);
+        free(log);
+    }
+    
+    GLint status;
+    glGetProgramiv(program, GL_VALIDATE_STATUS, &status);
+//    GetError();
+    if (0 == status)
+    {
+        NSLog(@"Failed to link shader program");
+
+//        [NSException raise:kFailedToInitialiseGLException format:@"Failed to link shader program"];
+    }
 }
 
 @end
