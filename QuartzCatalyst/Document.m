@@ -624,8 +624,7 @@
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, blitFBO);
             
             // blit the whole extent from read to draw
-            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT , GL_NEAREST);
-            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_DEPTH_BUFFER_BIT , GL_NEAREST);
+            glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT , GL_NEAREST);
 
             // GL Syncronize contents of Blit Target
             glFlushRenderAPPLE();
@@ -652,6 +651,9 @@
             
             if(strongSelf.renderDepth)
             {
+                GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+                glDrawBuffers(2, drawBuffers);
+
                 glEnable(GL_TEXTURE_RECTANGLE_EXT);
                 glActiveTexture(GL_TEXTURE1);
                 glBindTexture(GL_TEXTURE_RECTANGLE_EXT, blitFBODepthAttachment);
@@ -663,6 +665,7 @@
             glBindTexture(GL_TEXTURE_RECTANGLE_EXT, blitFBOColorAttachment);
             glUniform1i(glGetUniformLocation(shaderProgram, "color"), 0);
 
+            
             glColor4f(1.0, 1.0, 1.0, 1.0);
             
             // move to VA for rendering
